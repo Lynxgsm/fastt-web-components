@@ -1,5 +1,6 @@
 import { Component, Host, h, State, Prop } from '@stencil/core';
 import { TitleStyle } from './types';
+import { callAIStream } from '../../utils/utils';
 
 @Component({
   tag: 'chat-modal',
@@ -8,11 +9,13 @@ import { TitleStyle } from './types';
 })
 export class ChatModal {
   @State() open = true;
-  @Prop() title: string = "Que puis-je faire pour vous ?";
+  @Prop() modalTitle: string = "Que puis-je faire pour vous ?";
   @Prop() titleStyle: Partial<TitleStyle> = {};
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
   @State() isLoading: boolean = false;
   @Prop() iconSize: number = 16;
+  @Prop() apiEndpoint: string = 'http://localhost:8000';
+  @State() conversationId: string = '';
 
   componentWillLoad() {
     this.loadFonts();
@@ -33,7 +36,52 @@ export class ChatModal {
     this.open = false;
   };
 
-  private handleSubmit = (e: Event) => {
+  private handleChunk = async (message: string) => {
+    try {
+      const aiMessageIndex = this.messages.length - 1; // The AI message we just added
+
+      await callAIStream(
+        message,
+        this.apiEndpoint,
+        this.conversationId || '',
+        (chunk: string) => {
+          this.messages = this.messages.map((msg, index) =>
+            index === aiMessageIndex
+              ? { ...msg, content: msg.content + chunk }
+              : msg
+          );
+        },
+        () => {
+          this.messages = this.messages.map((msg, index) =>
+            index === aiMessageIndex
+              ? { ...msg, isComplete: true }
+              : msg
+          );
+          this.isLoading = false;
+        },
+        (error: Error) => {
+          console.error('AI stream error:', error);
+          this.messages = this.messages.map((msg, index) =>
+            index === aiMessageIndex
+              ? { ...msg, content: 'Sorry, I encountered an error. Please try again.', isComplete: true }
+              : msg
+          );
+          this.isLoading = false;
+        }
+      );
+    } catch (error) {
+      console.error('Failed to call AI stream:', error);
+      const aiMessageIndex = this.messages.length - 1;
+      this.messages = this.messages.map((msg, index) =>
+        index === aiMessageIndex
+          ? { ...msg, content: 'Sorry, I encountered an error. Please try again.', isComplete: true }
+          : msg
+      );
+      this.isLoading = false;
+    }
+  };
+
+  private handleSubmit = async (e: Event) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const input = form.querySelector('input[name="message"]') as HTMLInputElement;
@@ -41,6 +89,8 @@ export class ChatModal {
     this.messages.push({ role: 'user', content: message });
     this.isLoading = true;
     form.reset();
+    this.messages.push({ role: 'ai', content: '' });
+    await this.handleChunk(message);
   };
 
   render() {
@@ -49,7 +99,7 @@ export class ChatModal {
         <div class={{ 'modal-overlay': true, visible: this.open }}>
           <div class="chat-container">
             <div class="modal-header">
-              <span class="modal-title">{this.title}</span>
+              <span class="modal-title">{this.modalTitle}</span>
               <button class="close-button" onClick={this.closeModal} aria-label="Close">&times;</button>
             </div>
             <div class="chat-content">

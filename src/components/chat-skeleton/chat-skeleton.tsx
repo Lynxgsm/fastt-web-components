@@ -9,7 +9,12 @@ export class ChatSkeleton {
   render() {
     return (
       <Host>
-        <slot></slot>
+        <div class='skeleton-container'>
+          <div class='skeleton-typing'>
+            <div class='skeleton-dot'></div>
+            <div class='skeleton-dot'></div>
+          </div>
+        </div>
       </Host>
     );
   }

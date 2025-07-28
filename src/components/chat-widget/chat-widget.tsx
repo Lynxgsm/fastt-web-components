@@ -14,6 +14,21 @@ export class ChatWidget {
 
   private inputEl?: HTMLInputElement;
 
+  componentWillLoad() {
+    this.loadFonts();
+  }
+
+  private loadFonts() {
+    // Check if fonts are already loaded to avoid duplicates
+    const existingLink = document.querySelector('link[href*="fonts.googleapis.com/css2?family=Signika"]');
+    if (!existingLink) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Signika:wght@300..700&family=Yantramanav:wght@100;300;400;500;700;900&display=swap';
+      document.head.appendChild(link);
+    }
+  }
+
   private handleSubmit = async (e: Event) => {
     e.preventDefault();
     const input = this.inputEl;

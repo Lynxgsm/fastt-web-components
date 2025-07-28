@@ -10,13 +10,17 @@ export { TitleStyle } from "./components/chat-modal/types";
 export namespace Components {
     interface ChatModal {
         /**
+          * @default 'http://localhost:8000'
+         */
+        "apiEndpoint": string;
+        /**
           * @default 16
          */
         "iconSize": number;
         /**
           * @default "Que puis-je faire pour vous ?"
          */
-        "title": string;
+        "modalTitle": string;
         /**
           * @default {}
          */
@@ -68,13 +72,17 @@ declare global {
 declare namespace LocalJSX {
     interface ChatModal {
         /**
+          * @default 'http://localhost:8000'
+         */
+        "apiEndpoint"?: string;
+        /**
           * @default 16
          */
         "iconSize"?: number;
         /**
           * @default "Que puis-je faire pour vous ?"
          */
-        "title"?: string;
+        "modalTitle"?: string;
         /**
           * @default {}
          */

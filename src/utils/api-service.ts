@@ -7,7 +7,7 @@ export async function callAIStream(
   onError?: (error: Error) => void,
 ): Promise<void> {
   try {
-    const response = await fetch(`${apiEndpoint}/stream-chat`, {
+    const response = await fetch(`${apiEndpoint}/conversation/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,7 +15,7 @@ export async function callAIStream(
         'Cache-Control': 'no-cache',
       },
       body: JSON.stringify({
-        message: message,
+        prompt: message,
         conversation_id: conversationId,
       }),
     });
@@ -42,22 +42,14 @@ export async function callAIStream(
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
+            if (data === '[DONE]') {
+              onComplete?.();
+              return;
+            }
             try {
               const parsed = JSON.parse(data);
-
-              // Handle different response types from your backend
-              if (parsed.type === 'end' && parsed.status === 'completed') {
-                onComplete?.();
-                return;
-              } else if (parsed.type === 'error') {
-                onError?.(new Error(parsed.error || 'Unknown error'));
-                return;
-              } else if (parsed.content) {
+              if (parsed.content) {
                 onChunk(parsed.content);
-              } else if (parsed.message) {
-                onChunk(parsed.message);
-              } else if (parsed.text) {
-                onChunk(parsed.text);
               }
             } catch (e) {
               if (data.trim()) {
@@ -77,22 +69,14 @@ export async function callAIStream(
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
+          if (data === '[DONE]') {
+            onComplete?.();
+            return;
+          }
           try {
             const parsed = JSON.parse(data);
-
-            // Handle different response types from your backend
-            if (parsed.type === 'end' && parsed.status === 'completed') {
-              onComplete?.();
-              return;
-            } else if (parsed.type === 'error') {
-              onError?.(new Error(parsed.error || 'Unknown error'));
-              return;
-            } else if (parsed.content) {
+            if (parsed.content) {
               onChunk(parsed.content);
-            } else if (parsed.message) {
-              onChunk(parsed.message);
-            } else if (parsed.text) {
-              onChunk(parsed.text);
             }
           } catch (e) {
             if (data.trim()) {
