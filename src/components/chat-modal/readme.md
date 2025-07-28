@@ -9,9 +9,9 @@
 
 | Property      | Attribute      | Description | Type                                                          | Default                           |
 | ------------- | -------------- | ----------- | ------------------------------------------------------------- | --------------------------------- |
-| `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `'http://51.159.134.1:8000'`      |
+| `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `'http://localhost:8000'`         |
 | `iconSize`    | `icon-size`    |             | `number`                                                      | `16`                              |
-| `title`       | `title`        |             | `string`                                                      | `"Que puis-je faire pour vous ?"` |
+| `modalTitle`  | `modal-title`  |             | `string`                                                      | `"Que puis-je faire pour vous ?"` |
 | `titleStyle`  | `title-style`  |             | `{ fontSize?: string; fontWeight?: string; color?: string; }` | `{}`                              |
 
 
