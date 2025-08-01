@@ -1,7 +1,98 @@
 'use strict';
 
-var index = require('./index-B5DxyNaH.js');
-var index$1 = require('./index.cjs.js');
+var index = require('./index-Ca_d1eY4.js');
+
+/**
+ * Generates a unique conversation ID
+ * @returns A unique string identifier for conversations
+ */
+function generateConversationId() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    return `conv_${timestamp}_${random}`;
+}
+
+async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
+    try {
+        const response = await fetch(`${apiEndpoint}/conversation/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+            },
+            body: JSON.stringify({
+                prompt: message,
+                conversation_id: conversationId,
+            }),
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let partial = '';
+        if (!reader) {
+            throw new Error('Failed to get response reader');
+        }
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                partial += decoder.decode();
+                const lines = partial.split('\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') {
+                            onComplete?.();
+                            return;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.content) {
+                                onChunk(parsed.content);
+                            }
+                        }
+                        catch (e) {
+                            if (data.trim()) {
+                                onChunk(data);
+                            }
+                        }
+                    }
+                }
+                onComplete?.();
+                break;
+            }
+            partial += decoder.decode(value, { stream: true });
+            let lines = partial.split('\n');
+            // Keep the last line in 'partial' in case it's incomplete
+            partial = lines.pop() || '';
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        onComplete?.();
+                        return;
+                    }
+                    try {
+                        const parsed = JSON.parse(data);
+                        if (parsed.content) {
+                            onChunk(parsed.content);
+                        }
+                    }
+                    catch (e) {
+                        if (data.trim()) {
+                            onChunk(data);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch (error) {
+        onError?.(error);
+    }
+}
 
 const chatModalCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;--main-color:#ff8834}p{all:unset}button{font-family:'Signika', serif, Arial, sans-serif}input{font-family:'Yantramanav', serif, Arial, sans-serif}.modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0, 0, 0, 0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity 0.3s ease, visibility 0.3s ease}.modal-overlay.visible{opacity:1;visibility:visible}.chat-container{width:90vw;height:90vh;max-width:1200px;max-height:800px;background:white;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0, 0, 0, 0.3);position:relative;transform:scale(0.8);transition:transform 0.3s ease}.modal-overlay.visible .chat-container{transform:scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #eee;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s ease}.close-button:hover{background-color:rgba(255, 255, 255, 0.2)}.chat-content{flex:1;display:flex;flex-direction:column;padding:30px;min-height:0}.message-container{flex:1;overflow-y:auto;margin-bottom:20px;padding:20px;border:1px solid #eee;border-radius:8px;min-height:300px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.input-container{display:flex;gap:12px;align-items:center;background:white;padding:16px;border:1px solid #ddd;border-radius:8px;box-shadow:0 2px 8px rgba(0, 0, 0, 0.1)}input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;transition:border-color 0.2s ease}input:focus{border-color:var(--main-color);box-shadow:0 0 0 2px rgba(236, 102, 7, 0.1)}button{padding:12px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border:none;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600;transition:transform 0.2s ease, box-shadow 0.2s ease}button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(236, 102, 7, 0.3)}button:disabled{background:#cccccc;cursor:not-allowed;transform:none;box-shadow:none}.typing-indicator{display:none;margin:12px 0;max-width:80%;margin-right:auto}.typing-indicator.active{display:block}.typing-indicator .skeleton-container{margin:0;background:transparent;border:none;padding:12px 16px}.typing-indicator .skeleton-wrapper{gap:8px}.typing-indicator .skeleton-avatar{width:24px;height:24px;margin-bottom:0}.typing-indicator .skeleton-line{height:12px}.typing-indicator .skeleton-typing{margin-top:4px}.message-container::-webkit-scrollbar{width:8px}.message-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}.message-container::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}.message-container::-webkit-scrollbar-thumb:hover{background:#a1a1a1}@media (max-width: 768px){.chat-container{width:95vw;height:95vh;border-radius:8px}.modal-header{padding:15px 20px}.modal-title{font-size:1.25rem}.chat-content{padding:20px}.message{max-width:90%;padding:10px 12px}.input-container{padding:12px;gap:8px}input{padding:10px 12px}button{padding:10px 16px}}.ai-feedback-buttons{display:flex;gap:8px;margin-top:8px;align-items:center}.ai-feedback-buttons button{all:unset;cursor:pointer}.ai-feedback-buttons button:hover{all:unset;cursor:pointer}.thumb-up,.thumb-down{width:16px;height:16px}@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}.skeleton-container{position:relative}.skeleton-line{height:14px;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px;margin-bottom:8px;position:relative;overflow:hidden}.skeleton-line:last-child{margin-bottom:0}.skeleton-line.line-1{width:95%}.skeleton-line.line-2{width:88%}.skeleton-line.line-3{width:72%}.skeleton-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;margin-bottom:12px;display:inline-block}.skeleton-wrapper{display:flex;align-items:flex-start;gap:12px}.skeleton-content{flex:1}.skeleton-typing{display:flex;align-items:center;gap:4px;margin-top:8px}.skeleton-dot{width:6px;height:6px;border-radius:50%;background-color:#6c757d;animation:typing 1.4s infinite ease-in-out}.skeleton-dot:nth-child(1){animation-delay:-0.32s}.skeleton-dot:nth-child(2){animation-delay:-0.16s}.skeleton-dot:nth-child(3){animation-delay:0s}@keyframes typing{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}.skeleton-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);animation:glow 2s infinite;border-radius:inherit}@keyframes glow{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}";
 
@@ -15,9 +106,12 @@ const ChatModal = class {
     messages = [];
     isLoading = false;
     iconSize = 16;
-    apiEndpoint = 'http://localhost:8000';
+    apiEndpoint = index.Env.API_URL;
     conversationId = '';
     componentWillLoad() {
+        // Initialize conversation ID when component first loads
+        this.conversationId = generateConversationId();
+        console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
     }
     loadFonts() {
@@ -36,7 +130,7 @@ const ChatModal = class {
     handleChunk = async (message) => {
         try {
             const aiMessageIndex = this.messages.length - 1; // The AI message we just added
-            await index$1.callAIStream(message, this.apiEndpoint, this.conversationId || '', (chunk) => {
+            await callAIStream(message, this.apiEndpoint, this.conversationId, (chunk) => {
                 this.messages = this.messages.map((msg, index) => index === aiMessageIndex
                     ? { ...msg, content: msg.content + chunk }
                     : msg);
@@ -74,11 +168,11 @@ const ChatModal = class {
         await this.handleChunk(message);
     };
     render() {
-        return (index.h(index.Host, { key: '8f3047462e79d663fb6a5482a9039daf6e5c9402' }, index.h("div", { key: '66b8ad26edf3df076ca9115e2043266bd6925c5f', class: { 'modal-overlay': true, visible: this.open } }, index.h("div", { key: '58464072f0c6dda2a3b4666a4c9e77bd63b4297b', class: "chat-container" }, index.h("div", { key: 'a22332dfd8abfcb9b1cbfceee9ad79b3bfab15cc', class: "modal-header" }, index.h("span", { key: '8beeb250b848bb890545c0fe4045a109e6603781', class: "modal-title" }, this.modalTitle), index.h("button", { key: '2d5181dcea0539bb3b8e2c5abfc22973820e3722', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), index.h("div", { key: '875f1c9076a6464add1c869211c7f6c2498ecf5a', class: "chat-content" }, index.h("div", { key: '1e4e03d7f763cfed4537daba298eb114a5ea50f1', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
+        return (index.h(index.Host, { key: '4f4059e1b1cc71ecc34c5f6fafc90167659936f3' }, index.h("div", { key: 'e02da094e6b072319c1f71bbed03012b14db2c12', class: { 'modal-overlay': true, visible: this.open } }, index.h("div", { key: '7cb432e4c2e7638037c118f0cc78965bbdf434ae', class: "chat-container" }, index.h("div", { key: 'db77456fe961d9482faf3ffdb3d1361bf6d9c97a', class: "modal-header" }, index.h("span", { key: '45c48b6efa829ff8636e19ba32f7906e80927cdd', class: "modal-title" }, this.modalTitle), index.h("button", { key: 'a0c56b020c79b9d731b3e89721a3192bfc8bef49', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), index.h("div", { key: 'ff5d61b8f6a2d114d15f55923df51047ef851509', class: "chat-content" }, index.h("div", { key: 'dae59cb6ae6638a54f8a5e9c77e9a54ef0c602c7', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : message.content, message.isComplete && index.h("satisfaction-buttons", null))) : (index.h("p", null, message.content)))))), index.h("form", { key: '019445f3e8b63e1ca2cc33d12a322f0000089f49', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: 'a4eee9ba500715c454e03198c3cf02216846317b', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), index.h("button", { key: 'd19302807326752ebbf76aa79d58bce869253b9f', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : message.content, message.isComplete && index.h("satisfaction-buttons", null))) : (index.h("p", null, message.content)))))), index.h("form", { key: 'bc390570aff55025cd299b57daf0fa9d8a98c3af', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '61654d4c5f22887bce3f362f8a6922b53c960aa7', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), index.h("button", { key: '0fa92be242811ee600c252ec6e73e612cffeba6f', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
     }
 };
 ChatModal.style = chatModalCss;
@@ -95,7 +189,7 @@ const ChatSkeleton = class {
 };
 ChatSkeleton.style = chatSkeletonCss;
 
-const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:24px;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.message-container{flex:1;padding:16px;overflow-y:auto;background:#f7fafc;min-height:200px}.message{margin-bottom:12px;padding:10px 14px;border-radius:8px;max-width:80%;word-break:break-word}.user-message{background:#bee3f8;align-self:flex-end;text-align:right}.ai-message{background:#e2e8f0;align-self:flex-start;text-align:left}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#3182ce;color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}";
+const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:10vh;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.message-container{flex:1;padding:16px;overflow-y:scroll;background:#f7fafc;min-height:250px;max-height:250px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--main-color);color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}";
 
 const ChatWidget = class {
     constructor(hostRef) {
@@ -104,9 +198,13 @@ const ChatWidget = class {
     messages = [];
     isLoading = false;
     isChatContainerVisible = true;
-    apiEndpoint = "http://localhost:8000";
+    apiEndpoint = index.Env.API_URL;
+    conversationId = '';
     inputEl;
     componentWillLoad() {
+        // Initialize conversation ID when component first loads
+        this.conversationId = generateConversationId();
+        console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
     }
     loadFonts() {
@@ -132,7 +230,7 @@ const ChatWidget = class {
         const aiMessageIndex = this.messages.length;
         this.messages = [...this.messages, { role: 'ai', content: '', isComplete: false }];
         try {
-            await index$1.callAIStream(message, this.apiEndpoint, 'default', (chunk) => {
+            await callAIStream(message, this.apiEndpoint, this.conversationId, (chunk) => {
                 const newMessages = [...this.messages];
                 newMessages[aiMessageIndex].content += chunk;
                 this.messages = newMessages;
@@ -171,18 +269,18 @@ const ChatWidget = class {
     };
     render() {
         return [
-            index.h("div", { key: 'bb9f09985dd69f4f8c4cfdd55c28eb6063335c39', class: {
+            index.h("div", { key: '2ff5b5ae33293789f52949df59d49e4b81b1c429', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, index.h("div", { key: 'b9e79b3b091600a3a0a62f91451d68e4acdd58a5', class: "chat-header" }, index.h("h3", { key: '2e0fc8a0f48078620a3666981202e37b98ec3761', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: 'd37168178d16e2811f06474cbcfa8f5af5d29973', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), index.h("div", { key: '708edd4b8987aaff2441419e61e1d4b713e7c117', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
+                } }, index.h("div", { key: '309a6c5b40fb62baf63f294da7b005c2e6a826cd', class: "chat-header" }, index.h("h3", { key: 'c0045f2d7b5cce8630fec2fc0f8169225a1e10bd', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: '5f979d0d6738bbde5406c9921a511e69ff832455', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), index.h("div", { key: 'c40c7ed6f9f0d8e5e66bdb122ea45c27d044f9b3', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
                 } }, message.role === 'ai' ? [
                 this.isLoading && message.content === '' ? index.h("chat-skeleton", null) : index.h("span", null, message.content),
                 message.isComplete && index.h("satisfaction-buttons", null),
-            ] : index.h("span", null, message.content))))), index.h("div", { key: '8106e7c00d700a30fcad6d67cc4c6f3cd4c8faee', class: "typing-indicator" }, this.isLoading ? 'AI is typing...' : ''), index.h("form", { key: '634795c76efce336a4b419f1f5d516a34b7af082', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '59bc0526a887176b31eeaa0277f1b6b180d392bc', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), index.h("button", { key: 'b40dded1d4dc18eef7129e048a353569b4fb3cd1', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            index.h("button", { key: '61db8442bde86217bcde9f4944d1086df266259e', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: 'd7d7c4d09eabaa5bcbe0202dfcfe5765dfa0d0ec', xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'white', "stroke-width": '2', "stroke-linecap": 'round', "stroke-linejoin": 'round' }, index.h("path", { key: '4bb57586bae731dc9c3c4cbf0035fb790402d5c3', d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' })))
+            ] : index.h("span", null, message.content))))), index.h("form", { key: '1a8e303ab6415a0692b5126992991a4fb3c43127', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '3decf35ff1d8ee264a2db0a8145290d2764ca18a', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), index.h("button", { key: '254b847ca89a8c3aef27b138653e17232b26319c', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            index.h("button", { key: '487fe86437fec8e4248cf46ce8f7f0d4300e033e', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: '9c87d589b79279a9eb76208160fa7da3a4f1582a', xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'white', "stroke-width": '2', "stroke-linecap": 'round', "stroke-linejoin": 'round' }, index.h("path", { key: '7281ef8d8c96dbeabe138cdd8b8d321da3569553', d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' })))
         ];
     }
 };
@@ -195,7 +293,7 @@ const SatisfactionButtons = class {
         index.registerInstance(this, hostRef);
     }
     render() {
-        return (index.h(index.Host, { key: 'e78973a053039f884786845b8382a4d75d928a0b' }, index.h("slot", { key: '5166e2afcf028ca37962cee330f61b50f0e74bff' })));
+        return (index.h(index.Host, { key: 'e56f4f726bcc459c89e8977f04476b00a5fcd74e' }, index.h("slot", { key: '885a78c0da5410eaa0d6e06ff7ea311685f16e6c' })));
     }
 };
 SatisfactionButtons.style = satisfactionButtonsCss;

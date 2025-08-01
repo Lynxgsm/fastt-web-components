@@ -1,5 +1,6 @@
-import { Host, h } from "@stencil/core";
-import { callAIStream } from "../../utils/utils";
+import { Host, h, Env } from "@stencil/core";
+import { generateConversationId } from "../../utils/utils";
+import { callAIStream } from "../../utils/api-service";
 export class ChatModal {
     open = true;
     modalTitle = "Que puis-je faire pour vous ?";
@@ -7,9 +8,12 @@ export class ChatModal {
     messages = [];
     isLoading = false;
     iconSize = 16;
-    apiEndpoint = 'http://localhost:8000';
+    apiEndpoint = Env.API_URL;
     conversationId = '';
     componentWillLoad() {
+        // Initialize conversation ID when component first loads
+        this.conversationId = generateConversationId();
+        console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
     }
     loadFonts() {
@@ -28,7 +32,7 @@ export class ChatModal {
     handleChunk = async (message) => {
         try {
             const aiMessageIndex = this.messages.length - 1; // The AI message we just added
-            await callAIStream(message, this.apiEndpoint, this.conversationId || '', (chunk) => {
+            await callAIStream(message, this.apiEndpoint, this.conversationId, (chunk) => {
                 this.messages = this.messages.map((msg, index) => index === aiMessageIndex
                     ? { ...msg, content: msg.content + chunk }
                     : msg);
@@ -66,11 +70,11 @@ export class ChatModal {
         await this.handleChunk(message);
     };
     render() {
-        return (h(Host, { key: '8f3047462e79d663fb6a5482a9039daf6e5c9402' }, h("div", { key: '66b8ad26edf3df076ca9115e2043266bd6925c5f', class: { 'modal-overlay': true, visible: this.open } }, h("div", { key: '58464072f0c6dda2a3b4666a4c9e77bd63b4297b', class: "chat-container" }, h("div", { key: 'a22332dfd8abfcb9b1cbfceee9ad79b3bfab15cc', class: "modal-header" }, h("span", { key: '8beeb250b848bb890545c0fe4045a109e6603781', class: "modal-title" }, this.modalTitle), h("button", { key: '2d5181dcea0539bb3b8e2c5abfc22973820e3722', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), h("div", { key: '875f1c9076a6464add1c869211c7f6c2498ecf5a', class: "chat-content" }, h("div", { key: '1e4e03d7f763cfed4537daba298eb114a5ea50f1', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+        return (h(Host, { key: '4f4059e1b1cc71ecc34c5f6fafc90167659936f3' }, h("div", { key: 'e02da094e6b072319c1f71bbed03012b14db2c12', class: { 'modal-overlay': true, visible: this.open } }, h("div", { key: '7cb432e4c2e7638037c118f0cc78965bbdf434ae', class: "chat-container" }, h("div", { key: 'db77456fe961d9482faf3ffdb3d1361bf6d9c97a', class: "modal-header" }, h("span", { key: '45c48b6efa829ff8636e19ba32f7906e80927cdd', class: "modal-title" }, this.modalTitle), h("button", { key: 'a0c56b020c79b9d731b3e89721a3192bfc8bef49', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), h("div", { key: 'ff5d61b8f6a2d114d15f55923df51047ef851509', class: "chat-content" }, h("div", { key: 'dae59cb6ae6638a54f8a5e9c77e9a54ef0c602c7', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : message.content, message.isComplete && h("satisfaction-buttons", null))) : (h("p", null, message.content)))))), h("form", { key: '019445f3e8b63e1ca2cc33d12a322f0000089f49', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'a4eee9ba500715c454e03198c3cf02216846317b', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), h("button", { key: 'd19302807326752ebbf76aa79d58bce869253b9f', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : message.content, message.isComplete && h("satisfaction-buttons", null))) : (h("p", null, message.content)))))), h("form", { key: 'bc390570aff55025cd299b57daf0fa9d8a98c3af', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '61654d4c5f22887bce3f362f8a6922b53c960aa7', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), h("button", { key: '0fa92be242811ee600c252ec6e73e612cffeba6f', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
     }
     static get is() { return "chat-modal"; }
     static get encapsulation() { return "shadow"; }
@@ -173,7 +177,7 @@ export class ChatModal {
                 "getter": false,
                 "setter": false,
                 "reflect": false,
-                "defaultValue": "'http://localhost:8000'"
+                "defaultValue": "Env.API_URL"
             }
         };
     }

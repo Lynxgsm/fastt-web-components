@@ -1,4 +1,4 @@
-import { p as proxyCustomElement, H, h, a as Host } from './p-RhZzjM8d.js';
+import { p as proxyCustomElement, H, h, a as Host } from './index.js';
 
 const satisfactionButtonsCss = ":host{display:block}";
 
@@ -9,7 +9,7 @@ const SatisfactionButtons = /*@__PURE__*/ proxyCustomElement(class SatisfactionB
         this.__attachShadow();
     }
     render() {
-        return (h(Host, { key: 'e78973a053039f884786845b8382a4d75d928a0b' }, h("slot", { key: '5166e2afcf028ca37962cee330f61b50f0e74bff' })));
+        return (h(Host, { key: 'e56f4f726bcc459c89e8977f04476b00a5fcd74e' }, h("slot", { key: '885a78c0da5410eaa0d6e06ff7ea311685f16e6c' })));
     }
     static get style() { return satisfactionButtonsCss; }
 }, [257, "satisfaction-buttons"]);
@@ -29,6 +29,6 @@ function defineCustomElement() {
 defineCustomElement();
 
 export { SatisfactionButtons as S, defineCustomElement as d };
-//# sourceMappingURL=p-DHPXtmdN.js.map
+//# sourceMappingURL=p-DtQuXTkh.js.map
 
-//# sourceMappingURL=p-DHPXtmdN.js.map
+//# sourceMappingURL=p-DtQuXTkh.js.map

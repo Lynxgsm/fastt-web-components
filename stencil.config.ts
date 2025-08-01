@@ -1,8 +1,15 @@
 import { Config } from '@stencil/core';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 export const config: Config = {
   namespace: 'fastt-web-components',
   globalStyle: 'src/global/global.css',
+  env: {
+    API_URL: process.env.API_URL,
+  },
   outputTargets: [
     {
       type: 'dist',

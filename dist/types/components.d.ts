@@ -10,7 +10,7 @@ export { TitleStyle } from "./components/chat-modal/types";
 export namespace Components {
     interface ChatModal {
         /**
-          * @default 'http://localhost:8000'
+          * @default Env.API_URL
          */
         "apiEndpoint": string;
         /**
@@ -30,7 +30,7 @@ export namespace Components {
     }
     interface ChatWidget {
         /**
-          * @default "http://localhost:8000"
+          * @default Env.API_URL
          */
         "apiEndpoint": string;
     }
@@ -72,7 +72,7 @@ declare global {
 declare namespace LocalJSX {
     interface ChatModal {
         /**
-          * @default 'http://localhost:8000'
+          * @default Env.API_URL
          */
         "apiEndpoint"?: string;
         /**
@@ -92,7 +92,7 @@ declare namespace LocalJSX {
     }
     interface ChatWidget {
         /**
-          * @default "http://localhost:8000"
+          * @default Env.API_URL
          */
         "apiEndpoint"?: string;
     }

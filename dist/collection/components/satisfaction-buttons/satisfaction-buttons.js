@@ -1,7 +1,7 @@
 import { Host, h } from "@stencil/core";
 export class SatisfactionButtons {
     render() {
-        return (h(Host, { key: 'e78973a053039f884786845b8382a4d75d928a0b' }, h("slot", { key: '5166e2afcf028ca37962cee330f61b50f0e74bff' })));
+        return (h(Host, { key: 'e56f4f726bcc459c89e8977f04476b00a5fcd74e' }, h("slot", { key: '885a78c0da5410eaa0d6e06ff7ea311685f16e6c' })));
     }
     static get is() { return "satisfaction-buttons"; }
     static get encapsulation() { return "shadow"; }

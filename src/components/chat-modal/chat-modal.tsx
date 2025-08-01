@@ -1,6 +1,7 @@
-import { Component, Host, h, State, Prop } from '@stencil/core';
+import { Component, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
-import { callAIStream } from '../../utils/utils';
+import { generateConversationId } from '../../utils/utils';
+import { callAIStream } from '../../utils/api-service';
 
 @Component({
   tag: 'chat-modal',
@@ -14,10 +15,13 @@ export class ChatModal {
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
   @State() isLoading: boolean = false;
   @Prop() iconSize: number = 16;
-  @Prop() apiEndpoint: string = 'http://localhost:8000';
+  @Prop() apiEndpoint: string = Env.API_URL;
   @State() conversationId: string = '';
 
   componentWillLoad() {
+    // Initialize conversation ID when component first loads
+    this.conversationId = generateConversationId();
+    console.log('Generated conversation ID:', this.conversationId);
     this.loadFonts();
   }
 
@@ -43,7 +47,7 @@ export class ChatModal {
       await callAIStream(
         message,
         this.apiEndpoint,
-        this.conversationId || '',
+        this.conversationId,
         (chunk: string) => {
           this.messages = this.messages.map((msg, index) =>
             index === aiMessageIndex

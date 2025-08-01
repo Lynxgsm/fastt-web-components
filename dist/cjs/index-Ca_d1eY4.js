@@ -2,6 +2,7 @@
 
 const NAMESPACE = 'fastt-web-components';
 const BUILD = /* fastt-web-components */ { hydratedSelectorName: "hydrated", lazyLoad: true, updatable: true, watchCallback: false };
+const Env = /* fastt-web-components */ {"API_URL":"http://51.159.134.1:8000"};
 
 const globalScripts = () => {};
 const globalStyles = "@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&family=Yantramanav:wght@100;300;400;500;700;900&display=swap'); :root{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834}";
@@ -1450,6 +1451,7 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
 // src/runtime/nonce.ts
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
+exports.Env = Env;
 exports.Host = Host;
 exports.bootstrapLazy = bootstrapLazy;
 exports.globalScripts = globalScripts;
@@ -1457,6 +1459,6 @@ exports.h = h;
 exports.promiseResolve = promiseResolve;
 exports.registerInstance = registerInstance;
 exports.setNonce = setNonce;
-//# sourceMappingURL=index-B5DxyNaH.js.map
+//# sourceMappingURL=index-Ca_d1eY4.js.map
 
-//# sourceMappingURL=index-B5DxyNaH.js.map
+//# sourceMappingURL=index-Ca_d1eY4.js.map

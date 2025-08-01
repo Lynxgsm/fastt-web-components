@@ -1,5 +1,6 @@
-import { Component, h, Prop, State } from '@stencil/core';
-import { callAIStream } from '../../utils/utils';
+import { Component, Env, h, Prop, State } from '@stencil/core';
+import { callAIStream } from '../../utils/api-service';
+import { generateConversationId } from '../../utils/utils';
 
 @Component({
   tag: 'chat-widget',
@@ -10,11 +11,15 @@ export class ChatWidget {
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
   @State() isLoading: boolean = false;
   @State() isChatContainerVisible: boolean = true;
-  @Prop() apiEndpoint: string = "http://localhost:8000";
+  @Prop() apiEndpoint: string = Env.API_URL;
+  @State() conversationId: string = '';
 
   private inputEl?: HTMLInputElement;
 
   componentWillLoad() {
+    // Initialize conversation ID when component first loads
+    this.conversationId = generateConversationId();
+    console.log('Generated conversation ID:', this.conversationId);
     this.loadFonts();
   }
 
@@ -44,7 +49,7 @@ export class ChatWidget {
       await callAIStream(
         message,
         this.apiEndpoint,
-        'default',
+        this.conversationId,
         (chunk: string) => {
           const newMessages = [...this.messages];
           newMessages[aiMessageIndex].content += chunk;
@@ -116,9 +121,9 @@ export class ChatWidget {
             </div>
           ))}
         </div>
-        <div class="typing-indicator">
+        {/* <div class="typing-indicator">
           {this.isLoading ? 'AI is typing...' : ''}
-        </div>
+        </div> */}
         <form class="input-container" onSubmit={this.handleSubmit}>
           <input
             type="text"
