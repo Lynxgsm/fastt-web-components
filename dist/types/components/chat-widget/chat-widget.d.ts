@@ -7,6 +7,7 @@ export declare class ChatWidget {
     isLoading: boolean;
     isChatContainerVisible: boolean;
     apiEndpoint: string;
+    conversationId: string;
     private inputEl?;
     componentWillLoad(): void;
     private loadFonts;

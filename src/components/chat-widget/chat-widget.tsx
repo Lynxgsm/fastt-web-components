@@ -1,5 +1,6 @@
 import { Component, Env, h, Prop, State } from '@stencil/core';
-import { callAIStream } from '../../utils/utils';
+import { callAIStream } from '../../utils/api-service';
+import { generateConversationId } from '../../utils/utils';
 
 @Component({
   tag: 'chat-widget',
@@ -11,10 +12,14 @@ export class ChatWidget {
   @State() isLoading: boolean = false;
   @State() isChatContainerVisible: boolean = true;
   @Prop() apiEndpoint: string = Env.API_URL;
+  @State() conversationId: string = '';
 
   private inputEl?: HTMLInputElement;
 
   componentWillLoad() {
+    // Initialize conversation ID when component first loads
+    this.conversationId = generateConversationId();
+    console.log('Generated conversation ID:', this.conversationId);
     this.loadFonts();
   }
 
@@ -44,7 +49,7 @@ export class ChatWidget {
       await callAIStream(
         message,
         this.apiEndpoint,
-        'default',
+        this.conversationId,
         (chunk: string) => {
           const newMessages = [...this.messages];
           newMessages[aiMessageIndex].content += chunk;
