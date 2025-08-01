@@ -8,7 +8,7 @@
 
 .chat-widget-container {
   position: fixed;
-  bottom: 24px;
+  bottom: 10vh;
   right: 24px;
   width: 350px;
   background: white;
@@ -44,26 +44,35 @@
 .message-container {
   flex: 1;
   padding: 16px;
-  overflow-y: auto;
+  overflow-y: scroll;
   background: #f7fafc;
-  min-height: 200px;
+  min-height: 250px;
+  max-height: 250px;
 }
+
 .message {
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
+  margin: 12px 0;
+  padding: 12px 16px;
+  border-radius: 12px;
   max-width: 80%;
-  word-break: break-word;
+  word-wrap: break-word;
+  line-height: 1.4;
 }
+
 .user-message {
-  background: #bee3f8;
-  align-self: flex-end;
-  text-align: right;
+  background: linear-gradient(135deg, var(--main-color), #ff8834);
+  color: white;
+  margin-left: auto;
+  width: fit-content;
+  border-radius: 20px 20px 0px 20px;
 }
+
 .ai-message {
-  background: #e2e8f0;
-  align-self: flex-start;
-  text-align: left;
+  background: hsla(240, 6%, 90%, 0.5);
+  color: #333;
+  margin-right: auto;
+  width: fit-content;
+  border-radius: 20px 20px 20px 0px;
 }
 .typing-indicator {
   min-height: 24px;
@@ -107,7 +116,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: #3182ce;
+  background: var(--main-color);
   color: white;
   border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);

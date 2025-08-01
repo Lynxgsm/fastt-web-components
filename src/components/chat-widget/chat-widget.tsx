@@ -121,9 +121,9 @@ export class ChatWidget {
             </div>
           ))}
         </div>
-        <div class="typing-indicator">
+        {/* <div class="typing-indicator">
           {this.isLoading ? 'AI is typing...' : ''}
-        </div>
+        </div> */}
         <form class="input-container" onSubmit={this.handleSubmit}>
           <input
             type="text"
