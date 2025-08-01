@@ -1,15 +1,4 @@
-'use strict';
-
-/**
- * Generates a unique conversation ID
- * @returns A unique string identifier for conversations
- */
-function generateConversationId() {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 15);
-    return `conv_${timestamp}_${random}`;
-}
-async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
+export async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
     try {
         const response = await fetch(`${apiEndpoint}/stream-chat`, {
             method: 'POST',
@@ -112,9 +101,4 @@ async function callAIStream(message, apiEndpoint, conversationId, onChunk, onCom
         onError?.(error);
     }
 }
-
-exports.callAIStream = callAIStream;
-exports.generateConversationId = generateConversationId;
-//# sourceMappingURL=index-BmNCgPjJ.js.map
-
-//# sourceMappingURL=index-BmNCgPjJ.js.map
+//# sourceMappingURL=local-service.js.map

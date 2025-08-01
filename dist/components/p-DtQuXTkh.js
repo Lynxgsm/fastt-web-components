@@ -1,4 +1,4 @@
-import { p as proxyCustomElement, H, h, a as Host } from './p-WTATsi4m.js';
+import { p as proxyCustomElement, H, h, a as Host } from './index.js';
 
 const satisfactionButtonsCss = ":host{display:block}";
 
@@ -29,6 +29,6 @@ function defineCustomElement() {
 defineCustomElement();
 
 export { SatisfactionButtons as S, defineCustomElement as d };
-//# sourceMappingURL=p-mJEuaOsC.js.map
+//# sourceMappingURL=p-DtQuXTkh.js.map
 
-//# sourceMappingURL=p-mJEuaOsC.js.map
+//# sourceMappingURL=p-DtQuXTkh.js.map

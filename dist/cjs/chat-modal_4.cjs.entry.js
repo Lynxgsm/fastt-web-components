@@ -1,7 +1,16 @@
 'use strict';
 
 var index = require('./index-Ca_d1eY4.js');
-var index$1 = require('./index-BmNCgPjJ.js');
+
+/**
+ * Generates a unique conversation ID
+ * @returns A unique string identifier for conversations
+ */
+function generateConversationId() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    return `conv_${timestamp}_${random}`;
+}
 
 async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
     try {
@@ -101,7 +110,7 @@ const ChatModal = class {
     conversationId = '';
     componentWillLoad() {
         // Initialize conversation ID when component first loads
-        this.conversationId = index$1.generateConversationId();
+        this.conversationId = generateConversationId();
         console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
     }
@@ -194,7 +203,7 @@ const ChatWidget = class {
     inputEl;
     componentWillLoad() {
         // Initialize conversation ID when component first loads
-        this.conversationId = index$1.generateConversationId();
+        this.conversationId = generateConversationId();
         console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
     }

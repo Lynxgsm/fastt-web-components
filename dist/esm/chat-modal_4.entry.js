@@ -1,5 +1,14 @@
 import { r as registerInstance, E as Env, h, H as Host } from './index-DvbVpvT7.js';
-import { g as generateConversationId } from './index-pQQEK2E1.js';
+
+/**
+ * Generates a unique conversation ID
+ * @returns A unique string identifier for conversations
+ */
+function generateConversationId() {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    return `conv_${timestamp}_${random}`;
+}
 
 async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
     try {
