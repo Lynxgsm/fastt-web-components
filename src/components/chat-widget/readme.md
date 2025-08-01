@@ -7,9 +7,9 @@
 
 ## Properties
 
-| Property      | Attribute      | Description | Type     | Default                   |
-| ------------- | -------------- | ----------- | -------- | ------------------------- |
-| `apiEndpoint` | `api-endpoint` |             | `string` | `"http://localhost:8000"` |
+| Property      | Attribute      | Description | Type     | Default       |
+| ------------- | -------------- | ----------- | -------- | ------------- |
+| `apiEndpoint` | `api-endpoint` |             | `string` | `Env.API_URL` |
 
 
 ## Dependencies

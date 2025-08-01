@@ -1,4 +1,4 @@
-import { Component, h, Prop, State } from '@stencil/core';
+import { Component, Env, h, Prop, State } from '@stencil/core';
 import { callAIStream } from '../../utils/utils';
 
 @Component({
@@ -10,7 +10,7 @@ export class ChatWidget {
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
   @State() isLoading: boolean = false;
   @State() isChatContainerVisible: boolean = true;
-  @Prop() apiEndpoint: string = "http://localhost:8000";
+  @Prop() apiEndpoint: string = Env.API_URL;
 
   private inputEl?: HTMLInputElement;
 

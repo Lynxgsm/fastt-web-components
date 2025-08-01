@@ -1,4 +1,4 @@
-import { Component, Host, h, State, Prop } from '@stencil/core';
+import { Component, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
 import { callAIStream } from '../../utils/utils';
 
@@ -14,7 +14,7 @@ export class ChatModal {
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
   @State() isLoading: boolean = false;
   @Prop() iconSize: number = 16;
-  @Prop() apiEndpoint: string = 'http://localhost:8000';
+  @Prop() apiEndpoint: string = Env.API_URL;
   @State() conversationId: string = '';
 
   componentWillLoad() {

@@ -2,6 +2,7 @@ const globalStyles = "@import url('https://fonts.googleapis.com/css2?family=Sign
 
 const NAMESPACE = 'fastt-web-components';
 const BUILD = /* fastt-web-components */ { hydratedSelectorName: "hydrated", lazyLoad: false, updatable: true, watchCallback: false };
+const Env = /* fastt-web-components */ {};
 
 /*
  Stencil Client Platform v4.36.1 | MIT Licensed | https://stenciljs.com
@@ -1261,7 +1262,7 @@ function render(vnode, container) {
   renderVdom(ref, vnode);
 }
 
-export { H, Host as a, setNonce as b, setPlatformOptions as c, getAssetPath as g, h, proxyCustomElement as p, render as r, setAssetPath as s };
-//# sourceMappingURL=p-RhZzjM8d.js.map
+export { Env as E, H, Host as a, setNonce as b, setPlatformOptions as c, getAssetPath as g, h, proxyCustomElement as p, render as r, setAssetPath as s };
+//# sourceMappingURL=p-2fbjSrKn.js.map
 
-//# sourceMappingURL=p-RhZzjM8d.js.map
+//# sourceMappingURL=p-2fbjSrKn.js.map

@@ -1,4 +1,4 @@
-export { g as getAssetPath, r as render, s as setAssetPath, b as setNonce, c as setPlatformOptions } from './p-RhZzjM8d.js';
+export { g as getAssetPath, r as render, s as setAssetPath, b as setNonce, c as setPlatformOptions } from './p-2fbjSrKn.js';
 
 async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
     try {

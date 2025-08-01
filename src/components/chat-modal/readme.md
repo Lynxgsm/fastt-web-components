@@ -9,7 +9,7 @@
 
 | Property      | Attribute      | Description | Type                                                          | Default                           |
 | ------------- | -------------- | ----------- | ------------------------------------------------------------- | --------------------------------- |
-| `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `'http://localhost:8000'`         |
+| `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `Env.API_URL`                     |
 | `iconSize`    | `icon-size`    |             | `number`                                                      | `16`                              |
 | `modalTitle`  | `modal-title`  |             | `string`                                                      | `"Que puis-je faire pour vous ?"` |
 | `titleStyle`  | `title-style`  |             | `{ fontSize?: string; fontWeight?: string; color?: string; }` | `{}`                              |
