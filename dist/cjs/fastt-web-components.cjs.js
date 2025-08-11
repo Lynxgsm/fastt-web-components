@@ -1,6 +1,6 @@
 'use strict';
 
-var index = require('./index-Ca_d1eY4.js');
+var index = require('./index-CHIhIZeT.js');
 
 var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 /*

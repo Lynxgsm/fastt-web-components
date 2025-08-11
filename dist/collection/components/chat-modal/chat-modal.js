@@ -1,6 +1,7 @@
 import { Host, h, Env } from "@stencil/core";
 import { generateConversationId } from "../../utils/utils";
 import { callAIStream } from "../../utils/api-service";
+import { marked } from "marked";
 export class ChatModal {
     open = true;
     modalTitle = "Que puis-je faire pour vous ?";
@@ -11,13 +12,16 @@ export class ChatModal {
     apiEndpoint = Env.API_URL;
     conversationId = '';
     componentWillLoad() {
-        // Initialize conversation ID when component first loads
         this.conversationId = generateConversationId();
         console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true, // Convert line breaks to <br>
+            gfm: true, // GitHub Flavored Markdown
+        });
     }
     loadFonts() {
-        // Check if fonts are already loaded to avoid duplicates
         const existingLink = document.querySelector('link[href*="fonts.googleapis.com/css2?family=Signika"]');
         if (!existingLink) {
             const link = document.createElement('link');
@@ -31,7 +35,7 @@ export class ChatModal {
     };
     handleChunk = async (message) => {
         try {
-            const aiMessageIndex = this.messages.length - 1; // The AI message we just added
+            const aiMessageIndex = this.messages.length - 1;
             await callAIStream(message, this.apiEndpoint, this.conversationId, (chunk) => {
                 this.messages = this.messages.map((msg, index) => index === aiMessageIndex
                     ? { ...msg, content: msg.content + chunk }
@@ -69,12 +73,36 @@ export class ChatModal {
         this.messages.push({ role: 'ai', content: '' });
         await this.handleChunk(message);
     };
+    renderMarkdown(content) {
+        try {
+            // Sanitize the content to prevent XSS attacks
+            const sanitizedContent = content
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '');
+            // Handle both synchronous and asynchronous marked versions
+            const result = marked(sanitizedContent);
+            if (typeof result === 'string') {
+                return result;
+            }
+            else {
+                // If it's a Promise, return a placeholder and handle it asynchronously
+                return sanitizedContent;
+            }
+        }
+        catch (error) {
+            console.error('Error parsing markdown:', error);
+            // Fallback to plain text if markdown parsing fails
+            return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+    }
     render() {
-        return (h(Host, { key: '4f4059e1b1cc71ecc34c5f6fafc90167659936f3' }, h("div", { key: 'e02da094e6b072319c1f71bbed03012b14db2c12', class: { 'modal-overlay': true, visible: this.open } }, h("div", { key: '7cb432e4c2e7638037c118f0cc78965bbdf434ae', class: "chat-container" }, h("div", { key: 'db77456fe961d9482faf3ffdb3d1361bf6d9c97a', class: "modal-header" }, h("span", { key: '45c48b6efa829ff8636e19ba32f7906e80927cdd', class: "modal-title" }, this.modalTitle), h("button", { key: 'a0c56b020c79b9d731b3e89721a3192bfc8bef49', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), h("div", { key: 'ff5d61b8f6a2d114d15f55923df51047ef851509', class: "chat-content" }, h("div", { key: 'dae59cb6ae6638a54f8a5e9c77e9a54ef0c602c7', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+        return (h(Host, { key: 'b7d9d1e5c132bc3c4bc8473c666bd3f288e975a0' }, h("div", { key: '275795bd74b3ff75c78f3932407f297dcb834147', class: { 'modal-overlay': true, visible: this.open } }, h("div", { key: '5f8189c96bbaa993776751048e90ea864a63b962', class: "chat-container" }, h("div", { key: '8a2cf0d7d545ce0d1290edc92f4b377617bafda3', class: "modal-header" }, h("span", { key: '58e22a24be59f79b24b6e4fe5e764e8b388d0b3e', class: "modal-title" }, this.modalTitle), h("button", { key: '3a2353e67602c96f88a72b861562aec88cd88cb6', class: "close-button", onClick: this.closeModal, "aria-label": "Close" }, "\u00D7")), h("div", { key: 'f4f51c6d6fb036647d7472206b2e617f299e9f92', class: "chat-content" }, h("div", { key: '92097f54ee3197c3b255ba4d11eff0cad1bee0c0', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : message.content, message.isComplete && h("satisfaction-buttons", null))) : (h("p", null, message.content)))))), h("form", { key: 'bc390570aff55025cd299b57daf0fa9d8a98c3af', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '61654d4c5f22887bce3f362f8a6922b53c960aa7', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), h("button", { key: '0fa92be242811ee600c252ec6e73e612cffeba6f', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) })), message.isComplete && h("satisfaction-buttons", null))) : (h("p", null, message.content)))))), h("form", { key: '17970a04f99dc7f2113f0bed6fcd471d031ad635', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '43726ba8ad324de5cf932774a2a30b4334d45bb4', name: 'message', type: 'text', placeholder: 'Tapez votre message ici...', disabled: this.isLoading }), h("button", { key: '563dbe14a93a56f37e0caab0c4d9e68bd6bcb66a', type: 'submit', disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
     }
     static get is() { return "chat-modal"; }
     static get encapsulation() { return "shadow"; }

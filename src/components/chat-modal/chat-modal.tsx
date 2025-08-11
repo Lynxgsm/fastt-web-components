@@ -2,6 +2,7 @@ import { Component, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
 import { generateConversationId } from '../../utils/utils';
 import { callAIStream } from '../../utils/api-service';
+import { marked } from 'marked';
 
 @Component({
   tag: 'chat-modal',
@@ -19,14 +20,18 @@ export class ChatModal {
   @State() conversationId: string = '';
 
   componentWillLoad() {
-    // Initialize conversation ID when component first loads
     this.conversationId = generateConversationId();
     console.log('Generated conversation ID:', this.conversationId);
     this.loadFonts();
+
+    // Configure marked for safe rendering
+    marked.setOptions({
+      breaks: true, // Convert line breaks to <br>
+      gfm: true,    // GitHub Flavored Markdown
+    });
   }
 
   private loadFonts() {
-    // Check if fonts are already loaded to avoid duplicates
     const existingLink = document.querySelector('link[href*="fonts.googleapis.com/css2?family=Signika"]');
     if (!existingLink) {
       const link = document.createElement('link');
@@ -42,7 +47,7 @@ export class ChatModal {
 
   private handleChunk = async (message: string) => {
     try {
-      const aiMessageIndex = this.messages.length - 1; // The AI message we just added
+      const aiMessageIndex = this.messages.length - 1;
 
       await callAIStream(
         message,
@@ -97,6 +102,30 @@ export class ChatModal {
     await this.handleChunk(message);
   };
 
+  private renderMarkdown(content: string): string {
+    try {
+      // Sanitize the content to prevent XSS attacks
+      const sanitizedContent = content
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '');
+
+      // Handle both synchronous and asynchronous marked versions
+      const result = marked(sanitizedContent);
+      if (typeof result === 'string') {
+        return result;
+      } else {
+        // If it's a Promise, return a placeholder and handle it asynchronously
+        return sanitizedContent;
+      }
+    } catch (error) {
+      console.error('Error parsing markdown:', error);
+      // Fallback to plain text if markdown parsing fails
+      return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }
+
   render() {
     return (
       <Host>
@@ -121,7 +150,9 @@ export class ChatModal {
                       <>
                         {this.isLoading && message.content === '' ? (
                           <chat-skeleton />
-                        ) : message.content}
+                        ) : (
+                          <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
+                        )}
                         {message.isComplete && <satisfaction-buttons />}
                       </>
                     ) : (

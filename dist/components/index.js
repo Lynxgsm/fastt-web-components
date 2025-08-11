@@ -2,7 +2,7 @@ const globalStyles = "@import url('https://fonts.googleapis.com/css2?family=Sign
 
 const NAMESPACE = 'fastt-web-components';
 const BUILD = /* fastt-web-components */ { hydratedSelectorName: "hydrated", lazyLoad: false, updatable: true, watchCallback: false };
-const Env = /* fastt-web-components */ {"API_URL":"http://51.159.134.1:8000"};
+const Env = /* fastt-web-components */ {"API_URL":"http://localhost:8000"};
 
 /*
  Stencil Client Platform v4.36.1 | MIT Licensed | https://stenciljs.com

@@ -17,5 +17,6 @@ export declare class ChatModal {
     private closeModal;
     private handleChunk;
     private handleSubmit;
+    private renderMarkdown;
     render(): any;
 }
