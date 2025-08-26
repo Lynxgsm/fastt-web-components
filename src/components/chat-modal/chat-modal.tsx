@@ -114,7 +114,8 @@ export class ChatModal {
       // Handle both synchronous and asynchronous marked versions
       const result = marked(sanitizedContent);
       if (typeof result === 'string') {
-        return result;
+        // Add target="_blank" to all links
+        return result.replace(/<a\s+href=/gi, '<a target="_blank" rel="noopener noreferrer" href=');
       } else {
         // If it's a Promise, return a placeholder and handle it asynchronously
         return sanitizedContent;
