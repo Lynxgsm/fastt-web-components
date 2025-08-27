@@ -1,6 +1,7 @@
 import { Component, Env, h, Prop, State } from '@stencil/core';
 import { callAIStream } from '../../utils/api-service';
 import { generateConversationId } from '../../utils/utils';
+import { marked } from 'marked';
 
 @Component({
   tag: 'chat-widget',
@@ -21,6 +22,12 @@ export class ChatWidget {
     this.conversationId = generateConversationId();
     console.log('Generated conversation ID:', this.conversationId);
     this.loadFonts();
+
+    // Configure marked for safe rendering
+    marked.setOptions({
+      breaks: true, // Convert line breaks to <br>
+      gfm: true,    // GitHub Flavored Markdown
+    });
   }
 
   private loadFonts() {
@@ -92,6 +99,31 @@ export class ChatWidget {
     this.inputEl = el;
   };
 
+  private renderMarkdown(content: string): string {
+    try {
+      // Sanitize the content to prevent XSS attacks
+      const sanitizedContent = content
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '');
+
+      // Handle both synchronous and asynchronous marked versions
+      const result = marked(sanitizedContent);
+      if (typeof result === 'string') {
+        // Add target="_blank" to all links
+        return result.replace(/<a\s+href=/gi, '<a target="_blank" rel="noopener noreferrer" href=');
+      } else {
+        // If it's a Promise, return a placeholder and handle it asynchronously
+        return sanitizedContent;
+      }
+    } catch (error) {
+      console.error('Error parsing markdown:', error);
+      // Fallback to plain text if markdown parsing fails
+      return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+  }
+
   render() {
     return [
       <div
@@ -115,7 +147,7 @@ export class ChatWidget {
               }}
             >
               {message.role === 'ai' ? [
-                this.isLoading && message.content === '' ? <chat-skeleton /> : <span>{message.content}</span>,
+                this.isLoading && message.content === '' ? <chat-skeleton /> : <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>,
                 message.isComplete && <satisfaction-buttons />,
               ] : <span>{message.content}</span>}
             </div>
