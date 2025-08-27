@@ -14,5 +14,6 @@ export declare class ChatWidget {
     private handleSubmit;
     private toggleChatContainer;
     private setInputRef;
+    private renderMarkdown;
     render(): any[];
 }

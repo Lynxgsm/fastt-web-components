@@ -35,6 +35,14 @@ export namespace Components {
         "apiEndpoint": string;
     }
     interface SatisfactionButtons {
+        /**
+          * @default Env.API_URL
+         */
+        "apiEndpoint": string;
+        /**
+          * @default ''
+         */
+        "conversationId": string;
     }
 }
 declare global {
@@ -97,6 +105,14 @@ declare namespace LocalJSX {
         "apiEndpoint"?: string;
     }
     interface SatisfactionButtons {
+        /**
+          * @default Env.API_URL
+         */
+        "apiEndpoint"?: string;
+        /**
+          * @default ''
+         */
+        "conversationId"?: string;
     }
     interface IntrinsicElements {
         "chat-modal": ChatModal;

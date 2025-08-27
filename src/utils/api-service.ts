@@ -90,3 +90,26 @@ export async function callAIStream(
     onError?.(error as Error);
   }
 }
+
+export async function handleFeedback(isSatisfied: number, apiEndpoint: string, conversationId: string, onComplete?: () => void, onError?: (error: Error) => void): Promise<void> {
+  try {
+    const response = await fetch(`${apiEndpoint}/conversation/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        conversation_id: conversationId,
+        is_satisfied: isSatisfied,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    onComplete?.();
+  } catch (error) {
+    onError?.(error as Error);
+  }
+}

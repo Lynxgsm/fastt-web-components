@@ -154,7 +154,7 @@ export class ChatModal {
                         ) : (
                           <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
                         )}
-                        {message.isComplete && <satisfaction-buttons />}
+                        {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} />}
                       </>
                     ) : (
                       <p>{message.content}</p>

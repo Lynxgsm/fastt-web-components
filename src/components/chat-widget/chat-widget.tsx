@@ -146,10 +146,20 @@ export class ChatWidget {
                 'ai-message': message.role === 'ai',
               }}
             >
-              {message.role === 'ai' ? [
-                this.isLoading && message.content === '' ? <chat-skeleton /> : <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>,
-                message.isComplete && <satisfaction-buttons />,
-              ] : <span>{message.content}</span>}
+              {message.role === 'ai' ? (
+                <>
+                  {this.isLoading && message.content === '' ? (
+                    <chat-skeleton />
+                  ) : (
+                    <>
+                      <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
+                      {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} />}
+                    </>
+                  )}
+                </>
+              ) : (
+                <span>{message.content}</span>
+              )}
             </div>
           ))}
         </div>

@@ -1,6 +1,7 @@
 import { Env, h } from "@stencil/core";
 import { callAIStream } from "../../utils/api-service";
 import { generateConversationId } from "../../utils/utils";
+import { marked } from "marked";
 export class ChatWidget {
     messages = [];
     isLoading = false;
@@ -13,6 +14,11 @@ export class ChatWidget {
         this.conversationId = generateConversationId();
         console.log('Generated conversation ID:', this.conversationId);
         this.loadFonts();
+        // Configure marked for safe rendering
+        marked.setOptions({
+            breaks: true, // Convert line breaks to <br>
+            gfm: true, // GitHub Flavored Markdown
+        });
     }
     loadFonts() {
         // Check if fonts are already loaded to avoid duplicates
@@ -74,20 +80,42 @@ export class ChatWidget {
     setInputRef = (el) => {
         this.inputEl = el;
     };
+    renderMarkdown(content) {
+        try {
+            // Sanitize the content to prevent XSS attacks
+            const sanitizedContent = content
+                .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '');
+            // Handle both synchronous and asynchronous marked versions
+            const result = marked(sanitizedContent);
+            if (typeof result === 'string') {
+                // Add target="_blank" to all links
+                return result.replace(/<a\s+href=/gi, '<a target="_blank" rel="noopener noreferrer" href=');
+            }
+            else {
+                // If it's a Promise, return a placeholder and handle it asynchronously
+                return sanitizedContent;
+            }
+        }
+        catch (error) {
+            console.error('Error parsing markdown:', error);
+            // Fallback to plain text if markdown parsing fails
+            return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+    }
     render() {
         return [
-            h("div", { key: '2ff5b5ae33293789f52949df59d49e4b81b1c429', class: {
+            h("div", { key: 'cb8c429a33a53be4e3a2a71be406cf184cdf4e8c', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, h("div", { key: '309a6c5b40fb62baf63f294da7b005c2e6a826cd', class: "chat-header" }, h("h3", { key: 'c0045f2d7b5cce8630fec2fc0f8169225a1e10bd', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("button", { key: '5f979d0d6738bbde5406c9921a511e69ff832455', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), h("div", { key: 'c40c7ed6f9f0d8e5e66bdb122ea45c27d044f9b3', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+                } }, h("div", { key: 'd34a9bda8d25b62936fe4f8fa6ebf8b95caf4fb1', class: "chat-header" }, h("h3", { key: 'e9e6beabe337fe964207b4af141471b1f8062919', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("button", { key: '18b6562e144ba0e28eaaf2b88c5637fae860f914', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), h("div", { key: '1d326877031e241f827b4445bb2518fb7262168a', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
-                } }, message.role === 'ai' ? [
-                this.isLoading && message.content === '' ? h("chat-skeleton", null) : h("span", null, message.content),
-                message.isComplete && h("satisfaction-buttons", null),
-            ] : h("span", null, message.content))))), h("form", { key: '1a8e303ab6415a0692b5126992991a4fb3c43127', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '3decf35ff1d8ee264a2db0a8145290d2764ca18a', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: '254b847ca89a8c3aef27b138653e17232b26319c', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            h("button", { key: '487fe86437fec8e4248cf46ce8f7f0d4300e033e', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: '9c87d589b79279a9eb76208160fa7da3a4f1582a', xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'white', "stroke-width": '2', "stroke-linecap": 'round', "stroke-linejoin": 'round' }, h("path", { key: '7281ef8d8c96dbeabe138cdd8b8d321da3569553', d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' })))
+                } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h(h.Fragment, null, h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "conversation-id": this.conversationId }))))) : (h("span", null, message.content)))))), h("form", { key: 'eb5d29eeb463398fdc0471f7912829e7e499edef', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'ea64d08cfa7b880f86e820c0e64c36b5d4a0528d', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: '9e837724486a13dd78992ad6312d4b9acd2d8b64', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            h("button", { key: 'c0f3e226ac3bfa61dfaaa857d5b154be35fcec9f', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: '9dd12b332fd4cb4fd42b4cef94fde41f43eb467d', xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'white', "stroke-width": '2', "stroke-linecap": 'round', "stroke-linejoin": 'round' }, h("path", { key: 'b3439cdce3d2b777bcb21c3e09a50b7b31bef529', d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' })))
         ];
     }
     static get is() { return "chat-widget"; }

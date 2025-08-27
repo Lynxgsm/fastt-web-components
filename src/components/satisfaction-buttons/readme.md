@@ -5,6 +5,14 @@
 <!-- Auto Generated Below -->
 
 
+## Properties
+
+| Property         | Attribute         | Description | Type     | Default       |
+| ---------------- | ----------------- | ----------- | -------- | ------------- |
+| `apiEndpoint`    | `api-endpoint`    |             | `string` | `Env.API_URL` |
+| `conversationId` | `conversation-id` |             | `string` | `''`          |
+
+
 ## Dependencies
 
 ### Used by

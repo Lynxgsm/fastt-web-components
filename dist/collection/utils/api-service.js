@@ -79,4 +79,25 @@ export async function callAIStream(message, apiEndpoint, conversationId, onChunk
         onError?.(error);
     }
 }
+export async function handleFeedback(isSatisfied, apiEndpoint, conversationId, onComplete, onError) {
+    try {
+        const response = await fetch(`${apiEndpoint}/conversation/feedback`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                conversation_id: conversationId,
+                is_satisfied: isSatisfied,
+            }),
+        });
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        onComplete?.();
+    }
+    catch (error) {
+        onError?.(error);
+    }
+}
 //# sourceMappingURL=api-service.js.map
