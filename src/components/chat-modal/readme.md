@@ -11,7 +11,7 @@
 | ------------- | -------------- | ----------- | ------------------------------------------------------------- | --------------------------------- |
 | `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `Env.API_URL`                     |
 | `iconSize`    | `icon-size`    |             | `number`                                                      | `16`                              |
-| `modalTitle`  | `modal-title`  |             | `string`                                                      | `"Que puis-je faire pour vous ?"` |
+| `modalTitle`  | `modal-title`  |             | `string`                                                      | `'Que puis-je faire pour vous ?'` |
 | `titleStyle`  | `title-style`  |             | `{ fontSize?: string; fontWeight?: string; color?: string; }` | `{}`                              |
 
 
