@@ -18,7 +18,7 @@ export namespace Components {
          */
         "iconSize": number;
         /**
-          * @default "Que puis-je faire pour vous ?"
+          * @default 'Que puis-je faire pour vous ?'
          */
         "modalTitle": string;
         /**
@@ -88,7 +88,7 @@ declare namespace LocalJSX {
          */
         "iconSize"?: number;
         /**
-          * @default "Que puis-je faire pour vous ?"
+          * @default 'Que puis-je faire pour vous ?'
          */
         "modalTitle"?: string;
         /**
