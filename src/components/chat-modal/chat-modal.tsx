@@ -10,7 +10,6 @@ import { marked } from 'marked';
   shadow: true,
 })
 export class ChatModal {
-  @State() open = true;
   @Prop() modalTitle: string = 'Que puis-je faire pour vous ?';
   @Prop() titleStyle: Partial<TitleStyle> = {};
   @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
@@ -40,10 +39,6 @@ export class ChatModal {
       document.head.appendChild(link);
     }
   }
-
-  private closeModal = () => {
-    this.open = false;
-  };
 
   private handleChunk = async (message: string) => {
     try {
