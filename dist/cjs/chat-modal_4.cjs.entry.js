@@ -1,6 +1,6 @@
 'use strict';
 
-var index = require('./index-CU98_Yjt.js');
+var index = require('./index-Ca_d1eY4.js');
 
 /**
  * Generates a unique conversation ID
@@ -3085,7 +3085,7 @@ const ChatModal = class {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? index.h("chat-skeleton", null) : index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "conversation-id": this.conversationId }))) : (index.h("p", null, message.content)))))), index.h("form", { key: 'cfda9d1ce9c258a88a373e8d6596d9ddff238f9a', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '23aba23eedaea5fef42163b4cd20ec82e242c6be', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), index.h("button", { key: '78a9389e82fe9988af34e11abd7d0de5285d9e0c', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? index.h("chat-skeleton", null) : index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "conversation-id": this.conversationId, "api-endpoint": this.apiEndpoint }))) : (index.h("p", null, message.content)))))), index.h("form", { key: '55cf5f1110a05d84068329882df589406c4f3f1e', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '3e9e0dfc0c712a04deef3dabb1891ba8da1c2a73', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), index.h("button", { key: '1a81c2ff1d5b0511a8caa2235cacd484b4afd20a', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
     }
 };
 ChatModal.style = chatModalCss;
@@ -3212,40 +3212,93 @@ const ChatWidget = class {
     }
     render() {
         return [
-            index.h("div", { key: '4151c0473917ec41e8b09e56f6cae3b90c3524b0', class: {
+            index.h("div", { key: '67e4db44b32873c7370ba713d14308c1f8b96ded', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, index.h("div", { key: '314d2828c947a89d1c5038cedc344f9bb7e5ffc4', class: "chat-header" }, index.h("h3", { key: '2e42af36a893e0e8f6f972ee08038e3c1c2d3d48', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: '2f57df8979530d74af1f2e8124fc616bc0e7f39a', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), index.h("div", { key: 'b1dbd7afd1c61a1189757c2d7593f6064b4a1592', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
+                } }, index.h("div", { key: '7e4eccad312a4186ed87ee3eae99db3e7175664a', class: "chat-header" }, index.h("h3", { key: 'c46bb7ceb0242bd285005ec5be3b73b232076efd', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: '73b682df80d0d00e9c75969008dacd4114412d3e', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), index.h("div", { key: 'a4ef05fdf58d519f8f7806b619b7f6a0ce9b1150', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
-                } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : (index.h(index.h.Fragment, null, index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "conversation-id": this.conversationId }))))) : (index.h("span", null, message.content)))))), index.h("form", { key: '98058dc5e024222bbee4b300d8220a761013f1be', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '1fb7209d36904e515fc9f45d94ffd52c215e1621', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), index.h("button", { key: '8216c67044649b12121fc4b21fff8f9ab2305e1b', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? 'Envoi...' : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            index.h("button", { key: '596484a3080278e41e0d1c39eff5986f09012a22', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: '06a5f5632bfda06d6c06ae75b41c0fbcc24ef3c7', xmlns: 'http://www.w3.org/2000/svg', width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'white', "stroke-width": '2', "stroke-linecap": 'round', "stroke-linejoin": 'round' }, index.h("path", { key: '81cb3fe1182a228ec4c34643b81e28c7ac0f3f45', d: 'M7.9 20A9 9 0 1 0 4 16.1L2 22Z' })))
+                } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : (index.h(index.h.Fragment, null, index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "conversation-id": this.conversationId }))))) : (index.h("span", null, message.content)))))), index.h("form", { key: 'a40530c35e170c8736a721b08cccfef5ca237a6a', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: 'f6ada81aa63d8fad000523725886e0582cc2fb32', type: "text", placeholder: "Type a message...", name: "message", required: true, class: "input", ref: this.setInputRef }), index.h("button", { key: '6df49f89a17ea62b988c27ef5ee796c75b68082b', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            index.h("button", { key: 'a4e5f564a53a59f519578a8f5571d579233370b0', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: 'b8e729d5269021f821d33b9c46ceb7650b4091c9', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("path", { key: '17a1dc17c61bd9d1a138f6e4b65df740850eda18', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
         ];
     }
 };
 ChatWidget.style = chatWidgetCss;
 
-const satisfactionButtonsCss = ":host{display:block !important;visibility:visible !important;height:auto !important;box-sizing:border-box;--btn-size:18px}button{all:unset}.satisfaction-container{gap:8px;margin-top:12px;padding:12px;width:100%;box-sizing:border-box}.satisfaction-buttons{display:flex !important;gap:8px;align-items:flex-start;justify-content:flex-start;width:100%}.satisfaction-btn{background:transparent !important;width:var(--btn-size) !important;height:var(--btn-size) !important;display:flex !important;align-items:center !important;justify-content:center !important;cursor:pointer !important;transition:all 0.2s ease !important;padding:0 !important;box-sizing:border-box !important}.satisfaction-btn svg{width:24px !important;height:24px !important}:host *{box-sizing:border-box !important}.satisfaction-btn,.satisfaction-btn:hover,.satisfaction-btn:active,.satisfaction-btn:focus{opacity:1 !important;visibility:visible !important}";
+class SatisfactionStateService {
+    state = new Map();
+    listeners = new Map();
+    setState(conversationId, state) {
+        this.state.set(conversationId, state);
+        this.notifyListeners(conversationId, state);
+    }
+    getState(conversationId) {
+        return this.state.get(conversationId) || null;
+    }
+    subscribe(conversationId, callback) {
+        if (!this.listeners.has(conversationId)) {
+            this.listeners.set(conversationId, new Set());
+        }
+        this.listeners.get(conversationId).add(callback);
+        // Return unsubscribe function
+        return () => {
+            const listeners = this.listeners.get(conversationId);
+            if (listeners) {
+                listeners.delete(callback);
+                if (listeners.size === 0) {
+                    this.listeners.delete(conversationId);
+                }
+            }
+        };
+    }
+    notifyListeners(conversationId, state) {
+        const listeners = this.listeners.get(conversationId);
+        if (listeners) {
+            listeners.forEach(callback => callback(state));
+        }
+    }
+}
+const satisfactionStateService = new SatisfactionStateService();
+
+const satisfactionButtonsCss = ":host{display:block !important;visibility:visible !important;height:auto !important;box-sizing:border-box;--btn-size:18px}button{all:unset}.satisfaction-container{gap:8px;margin-top:12px;padding:12px;width:100%;box-sizing:border-box}.satisfaction-buttons{display:flex !important;gap:8px;align-items:flex-start;justify-content:flex-start;width:100%}.satisfaction-btn{background:transparent !important;width:var(--btn-size) !important;height:var(--btn-size) !important;display:flex !important;align-items:center !important;justify-content:center !important;cursor:pointer !important;transition:all 0.2s ease !important;padding:0 !important;box-sizing:border-box !important;color:#6b7280 !important}.satisfaction-btn.active{color:#059669 !important}.satisfaction-btn.active.thumbs-down{color:#dc2626 !important}.satisfaction-btn svg{width:24px !important;height:24px !important}:host *{box-sizing:border-box !important}.satisfaction-btn,.satisfaction-btn:hover,.satisfaction-btn:active,.satisfaction-btn:focus{opacity:1 !important;visibility:visible !important}";
 
 const SatisfactionButtons = class {
     constructor(hostRef) {
         index.registerInstance(this, hostRef);
     }
-    apiEndpoint = index.Env.API_URL;
+    apiEndpoint = (index.Env.API_URL = 'https://fastt.celaneo.com');
     conversationId = '';
+    selectedButton = null;
+    unsubscribe = null;
+    componentDidLoad() {
+        // Initialize state from service
+        this.selectedButton = satisfactionStateService.getState(this.conversationId);
+        // Subscribe to state changes
+        this.unsubscribe = satisfactionStateService.subscribe(this.conversationId, state => {
+            this.selectedButton = state;
+        });
+    }
+    disconnectedCallback() {
+        // Clean up subscription
+        if (this.unsubscribe) {
+            this.unsubscribe();
+        }
+    }
     handleThumbsUp = () => {
+        satisfactionStateService.setState(this.conversationId, 'up');
         handleFeedback(1, this.apiEndpoint, this.conversationId, () => {
             console.log('Thumbs up clicked');
         });
     };
     handleThumbsDown = () => {
+        satisfactionStateService.setState(this.conversationId, 'down');
         handleFeedback(0, this.apiEndpoint, this.conversationId, () => {
             console.log('Thumbs down clicked');
         });
     };
     render() {
-        return (index.h(index.Host, { key: '78bebfd8537344847b87482f6f67205ae21b9045' }, index.h("div", { key: '018709cb2a0bc3f69b3d9980ef327fcad4b6eb06', class: "satisfaction-container" }, index.h("div", { key: '5115c40c47e426b0012217c57a4cbcb987511e44', class: "satisfaction-buttons" }, index.h("button", { key: 'ddacb33a1d6463f70fb488dd26ff6ae820ecb872', title: "R\u00E9ponse utile", class: "satisfaction-btn thumbs-up", onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, index.h("svg", { key: 'e68f92ccd7f61e4c231998b5a7e55ce91ebf8f6d', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, index.h("path", { key: '863866d5ebd637a2043bbacf7f9bdd9ded18a706', d: "M7 10v12" }), index.h("path", { key: '4945a4da9a5f33a1bd916ffd7676063b4d2c0c32', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), index.h("button", { key: 'bc79b6aea875c7f4deee0ee0dfe59d4d2204fdd7', title: "R\u00E9ponse inutile", class: "satisfaction-btn thumbs-down", onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, index.h("svg", { key: '01a62ea2c9df93aa699e0edfb16642948e64f003', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, index.h("path", { key: '6f4ce94360d427f99834fecf62a0d440dc60efda', d: "M17 14V2" }), index.h("path", { key: 'f01d040bcd253cba4f6150a624f2747a65a97613', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
+        return (index.h(index.Host, { key: '8ab94d482d02d447ad420170a8ea5e370c742b6d' }, index.h("div", { key: 'cb84d0e8e4a4ad503e3d1a2594b8d5d7bad83fe1', class: "satisfaction-container" }, index.h("div", { key: '601cb432223837c4fdb42a675f1b2c31a6457319', class: "satisfaction-buttons" }, index.h("button", { key: '000e5443a1d544851261682ac1711d0d7eaaa914', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, index.h("svg", { key: '50b22481b7cf901caf12860b41834f9362f9560c', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, index.h("path", { key: '1797fb6e93a0d5603e9b3020b93cbe6983ebb10b', d: "M7 10v12" }), index.h("path", { key: '993aa0a58d8113a02067b2b8c3bf571fea02eadd', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), index.h("button", { key: '3162e50bda221674c67716776721a5dc314765bb', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, index.h("svg", { key: 'b4966a5e80b1a36f498a561abb099e679c9892b5', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, index.h("path", { key: '0ef105f91663cc6f1791cc12d8a338b2a98fa098', d: "M17 14V2" }), index.h("path", { key: 'a97c165419a3c031635cc04261c31f63cc13ea70', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
     }
 };
 SatisfactionButtons.style = satisfactionButtonsCss;

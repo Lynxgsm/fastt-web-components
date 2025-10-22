@@ -131,7 +131,7 @@ export class ChatModal {
                   {message.role === 'ai' ? (
                     <>
                       {this.isLoading && message.content === '' ? <chat-skeleton /> : <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>}
-                      {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} />}
+                      {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} api-endpoint={this.apiEndpoint} />}
                     </>
                   ) : (
                     <p>{message.content}</p>

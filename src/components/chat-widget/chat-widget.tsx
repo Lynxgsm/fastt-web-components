@@ -26,7 +26,7 @@ export class ChatWidget {
     // Configure marked for safe rendering
     marked.setOptions({
       breaks: true, // Convert line breaks to <br>
-      gfm: true,    // GitHub Flavored Markdown
+      gfm: true, // GitHub Flavored Markdown
     });
   }
 
@@ -77,7 +77,7 @@ export class ChatWidget {
           };
           this.messages = newMessages;
           this.isLoading = false;
-        }
+        },
       );
     } catch (error) {
       const newMessages = [...this.messages];
@@ -134,7 +134,9 @@ export class ChatWidget {
       >
         <div class="chat-header">
           <h3 class="chat-title">Que puis-je faire pour vous ?</h3>
-          <button class="close-button" onClick={this.toggleChatContainer}>×</button>
+          <button class="close-button" onClick={this.toggleChatContainer}>
+            ×
+          </button>
         </div>
         <div class="message-container">
           {this.messages.map((message, index) => (
@@ -153,7 +155,7 @@ export class ChatWidget {
                   ) : (
                     <>
                       <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
-                      {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} />}
+                      {message.isComplete && <satisfaction-buttons api-endpoint={this.apiEndpoint} conversation-id={this.conversationId} />}
                     </>
                   )}
                 </>
@@ -167,39 +169,45 @@ export class ChatWidget {
           {this.isLoading ? 'AI is typing...' : ''}
         </div> */}
         <form class="input-container" onSubmit={this.handleSubmit}>
-          <input
-            type="text"
-            placeholder="Type a message..."
-            name="message"
-            required
-            class="input"
-            ref={this.setInputRef}
-          />
+          <input type="text" placeholder="Type a message..." name="message" required class="input" ref={this.setInputRef} />
           <button type="submit" disabled={this.isLoading} class="send-button">
-            {this.isLoading ? 'Envoi...' : (
-              <svg class="send-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            {this.isLoading ? (
+              'Envoi...'
+            ) : (
+              <svg
+                class="send-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
             )}
           </button>
         </form>
       </div>,
-      <button
-        class="chat-toggler"
-        onClick={this.toggleChatContainer}
-      >
+      <button class="chat-toggler" onClick={this.toggleChatContainer}>
         <svg
-          xmlns='http://www.w3.org/2000/svg'
-          width='24'
-          height='24'
-          viewBox='0 0 24 24'
-          fill='none'
-          stroke='white'
-          stroke-width='2'
-          stroke-linecap='round'
-          stroke-linejoin='round'
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
         >
-          <path d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z' />
+          <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
         </svg>
-      </button>
+      </button>,
     ];
   }
 }

@@ -36,7 +36,7 @@ export namespace Components {
     }
     interface SatisfactionButtons {
         /**
-          * @default Env.API_URL
+          * @default (Env.API_URL = 'https://fastt.celaneo.com')
          */
         "apiEndpoint": string;
         /**
@@ -106,7 +106,7 @@ declare namespace LocalJSX {
     }
     interface SatisfactionButtons {
         /**
-          * @default Env.API_URL
+          * @default (Env.API_URL = 'https://fastt.celaneo.com')
          */
         "apiEndpoint"?: string;
         /**

@@ -37,6 +37,15 @@ button {
   transition: all 0.2s ease !important;
   padding: 0 !important;
   box-sizing: border-box !important;
+  color: #6b7280 !important;
+}
+
+.satisfaction-btn.active {
+  color: #059669 !important;
+}
+
+.satisfaction-btn.active.thumbs-down {
+  color: #dc2626 !important;
 }
 
 .satisfaction-btn svg {
