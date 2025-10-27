@@ -165,11 +165,8 @@ export class ChatWidget {
             </div>
           ))}
         </div>
-        {/* <div class="typing-indicator">
-          {this.isLoading ? 'AI is typing...' : ''}
-        </div> */}
         <form class="input-container" onSubmit={this.handleSubmit}>
-          <input type="text" placeholder="Type a message..." name="message" required class="input" ref={this.setInputRef} />
+          <input type="text" placeholder="Tapez un message..." name="message" required class="input" ref={this.setInputRef} />
           <button type="submit" disabled={this.isLoading} class="send-button">
             {this.isLoading ? (
               'Envoi...'
