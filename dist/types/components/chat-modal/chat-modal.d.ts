@@ -6,6 +6,7 @@ export declare class ChatModal {
         role: string;
         content: string;
         isComplete?: boolean;
+        messageId?: string;
     }[];
     isLoading: boolean;
     iconSize: number;

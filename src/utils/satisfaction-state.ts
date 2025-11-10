@@ -4,36 +4,36 @@ class SatisfactionStateService {
   private state: Map<string, SatisfactionState> = new Map();
   private listeners: Map<string, Set<(state: SatisfactionState) => void>> = new Map();
 
-  setState(conversationId: string, state: SatisfactionState): void {
-    this.state.set(conversationId, state);
-    this.notifyListeners(conversationId, state);
+  setState(messageId: string, state: SatisfactionState): void {
+    this.state.set(messageId, state);
+    this.notifyListeners(messageId, state);
   }
 
-  getState(conversationId: string): SatisfactionState {
-    return this.state.get(conversationId) || null;
+  getState(messageId: string): SatisfactionState {
+    return this.state.get(messageId) || null;
   }
 
-  subscribe(conversationId: string, callback: (state: SatisfactionState) => void): () => void {
-    if (!this.listeners.has(conversationId)) {
-      this.listeners.set(conversationId, new Set());
+  subscribe(messageId: string, callback: (state: SatisfactionState) => void): () => void {
+    if (!this.listeners.has(messageId)) {
+      this.listeners.set(messageId, new Set());
     }
     
-    this.listeners.get(conversationId)!.add(callback);
+    this.listeners.get(messageId)!.add(callback);
 
     // Return unsubscribe function
     return () => {
-      const listeners = this.listeners.get(conversationId);
+      const listeners = this.listeners.get(messageId);
       if (listeners) {
         listeners.delete(callback);
         if (listeners.size === 0) {
-          this.listeners.delete(conversationId);
+          this.listeners.delete(messageId);
         }
       }
     };
   }
 
-  private notifyListeners(conversationId: string, state: SatisfactionState): void {
-    const listeners = this.listeners.get(conversationId);
+  private notifyListeners(messageId: string, state: SatisfactionState): void {
+    const listeners = this.listeners.get(messageId);
     if (listeners) {
       listeners.forEach(callback => callback(state));
     }

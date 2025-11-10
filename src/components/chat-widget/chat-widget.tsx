@@ -9,7 +9,7 @@ import { marked } from 'marked';
   shadow: true,
 })
 export class ChatWidget {
-  @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
+  @State() messages: { role: string; content: string; isComplete?: boolean; messageId?: string }[] = [];
   @State() isLoading: boolean = false;
   @State() isChatContainerVisible: boolean = true;
   @Prop() apiEndpoint: string = Env.API_URL;
@@ -62,9 +62,10 @@ export class ChatWidget {
           newMessages[aiMessageIndex].content += chunk;
           this.messages = newMessages;
         },
-        () => {
+        (messageId?: string) => {
           this.isLoading = false;
           const newMessages = [...this.messages];
+          newMessages[aiMessageIndex].messageId = messageId;
           newMessages[aiMessageIndex].isComplete = true;
           this.messages = newMessages;
         },
@@ -155,7 +156,7 @@ export class ChatWidget {
                   ) : (
                     <>
                       <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
-                      {message.isComplete && <satisfaction-buttons api-endpoint={this.apiEndpoint} conversation-id={this.conversationId} />}
+                      {message.isComplete && <satisfaction-buttons api-endpoint={this.apiEndpoint} message-id={message.messageId} />}
                     </>
                   )}
                 </>

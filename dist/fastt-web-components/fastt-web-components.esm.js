@@ -1,2 +1,50 @@
-import{p as t,g as i,b as n}from"./p-_TQhFv3x.js";export{s as setNonce}from"./p-_TQhFv3x.js";var a=()=>{const i=import.meta.url;const n={};if(i!==""){n.resourcesUrl=new URL(".",i).href}return t(n)};a().then((async t=>{await i();return n([["p-574aab9c",[[257,"chat-modal",{modalTitle:[1,"modal-title"],titleStyle:[16,"title-style"],iconSize:[2,"icon-size"],apiEndpoint:[1,"api-endpoint"],messages:[32],isLoading:[32],conversationId:[32]}],[257,"chat-widget",{apiEndpoint:[1,"api-endpoint"],messages:[32],isLoading:[32],isChatContainerVisible:[32],conversationId:[32]}],[257,"chat-skeleton"],[257,"satisfaction-buttons",{apiEndpoint:[1,"api-endpoint"],conversationId:[1,"conversation-id"],selectedButton:[32]}]]]],t)}));
+import { B as BUILD, c as consoleDevInfo, H, w as win, N as NAMESPACE, p as promiseResolve, g as globalScripts, b as bootstrapLazy } from './index-BKKbgT-O.js';
+export { s as setNonce } from './index-BKKbgT-O.js';
+
+/*
+ Stencil Client Patch Browser v4.36.1 | MIT Licensed | https://stenciljs.com
+ */
+
+var patchBrowser = () => {
+  if (BUILD.isDev && !BUILD.isTesting) {
+    consoleDevInfo("Running in development mode.");
+  }
+  if (BUILD.cloneNodeFix) {
+    patchCloneNodeFix(H.prototype);
+  }
+  const scriptElm = BUILD.scriptDataOpts ? win.document && Array.from(win.document.querySelectorAll("script")).find(
+    (s) => new RegExp(`/${NAMESPACE}(\\.esm)?\\.js($|\\?|#)`).test(s.src) || s.getAttribute("data-stencil-namespace") === NAMESPACE
+  ) : null;
+  const importMeta = import.meta.url;
+  const opts = BUILD.scriptDataOpts ? (scriptElm || {})["data-opts"] || {} : {};
+  if (importMeta !== "") {
+    opts.resourcesUrl = new URL(".", importMeta).href;
+  }
+  return promiseResolve(opts);
+};
+var patchCloneNodeFix = (HTMLElementPrototype) => {
+  const nativeCloneNodeFn = HTMLElementPrototype.cloneNode;
+  HTMLElementPrototype.cloneNode = function(deep) {
+    if (this.nodeName === "TEMPLATE") {
+      return nativeCloneNodeFn.call(this, deep);
+    }
+    const clonedNode = nativeCloneNodeFn.call(this, false);
+    const srcChildNodes = this.childNodes;
+    if (deep) {
+      for (let i = 0; i < srcChildNodes.length; i++) {
+        if (srcChildNodes[i].nodeType !== 2) {
+          clonedNode.appendChild(srcChildNodes[i].cloneNode(true));
+        }
+      }
+    }
+    return clonedNode;
+  };
+};
+
+patchBrowser().then(async (options) => {
+  await globalScripts();
+  return bootstrapLazy([["chat-skeleton",[[257,"chat-skeleton"]]],["satisfaction-buttons",[[257,"satisfaction-buttons",{"apiEndpoint":[1,"api-endpoint"],"messageId":[1,"message-id"],"selectedButton":[32]}]]],["chat-modal",[[257,"chat-modal",{"modalTitle":[1,"modal-title"],"titleStyle":[16,"title-style"],"iconSize":[2,"icon-size"],"apiEndpoint":[1,"api-endpoint"],"messages":[32],"isLoading":[32],"conversationId":[32]}]]],["chat-widget",[[257,"chat-widget",{"apiEndpoint":[1,"api-endpoint"],"messages":[32],"isLoading":[32],"isChatContainerVisible":[32],"conversationId":[32]}]]]], options);
+});
+//# sourceMappingURL=fastt-web-components.esm.js.map
+
 //# sourceMappingURL=fastt-web-components.esm.js.map

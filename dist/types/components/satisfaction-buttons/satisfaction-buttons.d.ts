@@ -1,6 +1,6 @@
 export declare class SatisfactionButtons {
     apiEndpoint: string;
-    conversationId: string;
+    messageId: string;
     selectedButton: 'up' | 'down' | null;
     private unsubscribe;
     componentDidLoad(): void;

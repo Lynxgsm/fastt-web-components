@@ -1,6 +1,6 @@
 import { Component, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
-import { generateConversationId } from '../../utils/utils';
+import { generateConversationId, generateMessageId } from '../../utils/utils';
 import { callAIStream } from '../../utils/api-service';
 import { marked } from 'marked';
 
@@ -12,7 +12,7 @@ import { marked } from 'marked';
 export class ChatModal {
   @Prop() modalTitle: string = 'Que puis-je faire pour vous ?';
   @Prop() titleStyle: Partial<TitleStyle> = {};
-  @State() messages: { role: string; content: string; isComplete?: boolean }[] = [];
+  @State() messages: { role: string; content: string; isComplete?: boolean; messageId?: string }[] = [];
   @State() isLoading: boolean = false;
   @Prop() iconSize: number = 16;
   @Prop() apiEndpoint: string = Env.API_URL;
@@ -29,6 +29,7 @@ export class ChatModal {
       gfm: true, // GitHub Flavored Markdown
     });
   }
+
 
   private loadFonts() {
     const existingLink = document.querySelector('link[href*="fonts.googleapis.com/css2?family=Signika"]');
@@ -51,8 +52,12 @@ export class ChatModal {
         (chunk: string) => {
           this.messages = this.messages.map((msg, index) => (index === aiMessageIndex ? { ...msg, content: msg.content + chunk } : msg));
         },
-        () => {
-          this.messages = this.messages.map((msg, index) => (index === aiMessageIndex ? { ...msg, isComplete: true } : msg));
+        (messageId?: string) => {
+          this.messages = this.messages.map((msg, index) => 
+            index === aiMessageIndex 
+              ? { ...msg, isComplete: true, messageId: messageId || msg.messageId } 
+              : msg
+          );
           this.isLoading = false;
         },
         (error: Error) => {
@@ -78,10 +83,10 @@ export class ChatModal {
     const form = e.target as HTMLFormElement;
     const input = form.querySelector('input[name="message"]') as HTMLInputElement;
     const message = input.value;
-    this.messages.push({ role: 'user', content: message });
+    this.messages.push({ role: 'user', content: message, messageId: generateMessageId() });
     this.isLoading = true;
     form.reset();
-    this.messages.push({ role: 'ai', content: '' });
+    this.messages.push({ role: 'ai', content: '', messageId: generateMessageId() });
     await this.handleChunk(message);
   };
 
@@ -131,7 +136,7 @@ export class ChatModal {
                   {message.role === 'ai' ? (
                     <>
                       {this.isLoading && message.content === '' ? <chat-skeleton /> : <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>}
-                      {message.isComplete && <satisfaction-buttons conversation-id={this.conversationId} api-endpoint={this.apiEndpoint} />}
+                      {message.isComplete && <satisfaction-buttons message-id={message.messageId} api-endpoint={this.apiEndpoint} />}
                     </>
                   ) : (
                     <p>{message.content}</p>

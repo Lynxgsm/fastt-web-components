@@ -1,1 +1,0 @@
-{"version":3,"file":"types.js","sourceRoot":"","sources":["../../../src/components/chat-modal/types.ts"],"names":[],"mappings":"","sourcesContent":["export type TitleStyle = {\n  fontSize: string;\n  fontWeight: string;\n  color: string;\n};\n"]}

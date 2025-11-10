@@ -1,5 +1,5 @@
 import { Component, Env, Host, Prop, State, h } from '@stencil/core';
-import { handleFeedback } from '../../utils/api-service';
+import { handleMessageFeedback } from '../../utils/api-service';
 import { satisfactionStateService } from '../../utils/satisfaction-state';
 
 @Component({
@@ -9,17 +9,17 @@ import { satisfactionStateService } from '../../utils/satisfaction-state';
 })
 export class SatisfactionButtons {
   @Prop() apiEndpoint: string = (Env.API_URL = 'https://fastt.celaneo.com');
-  @Prop() conversationId: string = '';
+  @Prop() messageId: string = '';
   @State() selectedButton: 'up' | 'down' | null = null;
 
   private unsubscribe: (() => void) | null = null;
 
   componentDidLoad() {
     // Initialize state from service
-    this.selectedButton = satisfactionStateService.getState(this.conversationId);
+    this.selectedButton = satisfactionStateService.getState(this.messageId);
 
     // Subscribe to state changes
-    this.unsubscribe = satisfactionStateService.subscribe(this.conversationId, state => {
+    this.unsubscribe = satisfactionStateService.subscribe(this.messageId, state => {
       this.selectedButton = state;
     });
   }
@@ -32,15 +32,15 @@ export class SatisfactionButtons {
   }
 
   private handleThumbsUp = () => {
-    satisfactionStateService.setState(this.conversationId, 'up');
-    handleFeedback(1, this.apiEndpoint, this.conversationId, () => {
+    satisfactionStateService.setState(this.messageId, 'up');
+    handleMessageFeedback(1, this.apiEndpoint, this.messageId, () => {
       console.log('Thumbs up clicked');
     });
   };
 
   private handleThumbsDown = () => {
-    satisfactionStateService.setState(this.conversationId, 'down');
-    handleFeedback(0, this.apiEndpoint, this.conversationId, () => {
+    satisfactionStateService.setState(this.messageId, 'down');
+    handleMessageFeedback(0, this.apiEndpoint, this.messageId, () => {
       console.log('Thumbs down clicked');
     });
   };

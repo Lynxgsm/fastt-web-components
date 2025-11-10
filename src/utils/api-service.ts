@@ -3,7 +3,7 @@ export async function callAIStream(
   apiEndpoint: string,
   conversationId: string,
   onChunk: (chunk: string) => void,
-  onComplete?: () => void,
+  onComplete?: (messageId?: string) => void,
   onError?: (error: Error) => void,
 ): Promise<void> {
   try {
@@ -50,6 +50,9 @@ export async function callAIStream(
               const parsed = JSON.parse(data);
               if (parsed.content) {
                 onChunk(parsed.content);
+              } else if (parsed.type === 'done') {
+                onComplete?.(parsed.message_id);
+                return;
               }
             } catch (e) {
               if (data.trim()) {
@@ -77,6 +80,9 @@ export async function callAIStream(
             const parsed = JSON.parse(data);
             if (parsed.content) {
               onChunk(parsed.content);
+            } else if (parsed.type === 'done') {
+              onComplete?.(parsed.message_id);
+              return;
             }
           } catch (e) {
             if (data.trim()) {
@@ -100,6 +106,29 @@ export async function handleFeedback(isSatisfied: number, apiEndpoint: string, c
       },
       body: JSON.stringify({
         conversation_id: conversationId,
+        is_satisfied: isSatisfied,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+
+    onComplete?.();
+  } catch (error) {
+    onError?.(error as Error);
+  }
+}
+
+export async function handleMessageFeedback(isSatisfied: number, apiEndpoint: string, messageId: string, onComplete?: () => void, onError?: (error: Error) => void): Promise<void> {
+  try {
+    const response = await fetch(`${apiEndpoint}/conversation/message/${messageId}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message_id: messageId,
         is_satisfied: isSatisfied,
       }),
     });

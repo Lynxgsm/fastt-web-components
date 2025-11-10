@@ -42,7 +42,7 @@ export namespace Components {
         /**
           * @default ''
          */
-        "conversationId": string;
+        "messageId": string;
     }
 }
 declare global {
@@ -112,7 +112,7 @@ declare namespace LocalJSX {
         /**
           * @default ''
          */
-        "conversationId"?: string;
+        "messageId"?: string;
     }
     interface IntrinsicElements {
         "chat-modal": ChatModal;

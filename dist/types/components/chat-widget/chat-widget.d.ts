@@ -3,6 +3,7 @@ export declare class ChatWidget {
         role: string;
         content: string;
         isComplete?: boolean;
+        messageId?: string;
     }[];
     isLoading: boolean;
     isChatContainerVisible: boolean;
