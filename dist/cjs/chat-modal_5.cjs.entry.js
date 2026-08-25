@@ -1,6 +1,6 @@
 'use strict';
 
-var index = require('./index-BoNdwW5P.js');
+var index = require('./index-C7XhOpRA.js');
 
 /**
  * Generates a unique conversation ID
@@ -21,7 +21,40 @@ function generateMessageId() {
     return `msg_${timestamp}_${random}`;
 }
 
-async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
+/**
+ * Traite une ligne `data: {json}` du flux.
+ * Renvoie true quand le flux est terminé et que l'appelant doit s'arrêter.
+ */
+function handleStreamLine(line, cb) {
+    if (!line.startsWith('data: '))
+        return false;
+    const data = line.slice(6);
+    if (data === '[DONE]') {
+        cb.onComplete?.();
+        return true;
+    }
+    try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'scope') {
+            cb.onScope?.(parsed);
+        }
+        else if (parsed.content) {
+            cb.onChunk(parsed.content);
+        }
+        else if (parsed.type === 'done') {
+            cb.onComplete?.(parsed.message_id);
+            return true;
+        }
+    }
+    catch (e) {
+        if (data.trim()) {
+            cb.onChunk(data);
+        }
+    }
+    return false;
+}
+async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError, contextNodeId = null, onScope) {
+    const cb = { onChunk, onComplete, onScope };
     try {
         const response = await fetch(`${apiEndpoint}/conversation/stream`, {
             method: 'POST',
@@ -33,6 +66,7 @@ async function callAIStream(message, apiEndpoint, conversationId, onChunk, onCom
             body: JSON.stringify({
                 prompt: message,
                 conversation_id: conversationId,
+                context_node_id: contextNodeId,
             }),
         });
         if (!response.ok) {
@@ -48,67 +82,34 @@ async function callAIStream(message, apiEndpoint, conversationId, onChunk, onCom
             const { done, value } = await reader.read();
             if (done) {
                 partial += decoder.decode();
-                const lines = partial.split('\n');
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') {
-                            onComplete?.();
-                            return;
-                        }
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.content) {
-                                onChunk(parsed.content);
-                            }
-                            else if (parsed.type === 'done') {
-                                onComplete?.(parsed.message_id);
-                                return;
-                            }
-                        }
-                        catch (e) {
-                            if (data.trim()) {
-                                onChunk(data);
-                            }
-                        }
-                    }
+                for (const line of partial.split('\n')) {
+                    if (handleStreamLine(line, cb))
+                        return;
                 }
                 onComplete?.();
                 break;
             }
             partial += decoder.decode(value, { stream: true });
-            let lines = partial.split('\n');
+            const lines = partial.split('\n');
             // Keep the last line in 'partial' in case it's incomplete
             partial = lines.pop() || '';
             for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
-                    if (data === '[DONE]') {
-                        onComplete?.();
-                        return;
-                    }
-                    try {
-                        const parsed = JSON.parse(data);
-                        if (parsed.content) {
-                            onChunk(parsed.content);
-                        }
-                        else if (parsed.type === 'done') {
-                            onComplete?.(parsed.message_id);
-                            return;
-                        }
-                    }
-                    catch (e) {
-                        if (data.trim()) {
-                            onChunk(data);
-                        }
-                    }
-                }
+                if (handleStreamLine(line, cb))
+                    return;
             }
         }
     }
     catch (error) {
         onError?.(error);
     }
+}
+async function fetchDecisionTree(apiEndpoint) {
+    const response = await fetch(`${apiEndpoint}/decision-tree/`);
+    if (!response.ok) {
+        throw new Error(`Impossible de charger l'arbre: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.nodes || [];
 }
 async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId, onComplete, onError) {
     try {
@@ -3008,7 +3009,7 @@ marked.Slugger = Slugger;
 marked.Hooks = Hooks;
 marked.parse = marked;
 
-const chatModalCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;--main-color:#ff8834}p{all:unset}button{font-family:'Signika', serif, Arial, sans-serif}input{font-family:'Yantramanav', serif, Arial, sans-serif}.modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0, 0, 0, 0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity 0.3s ease, visibility 0.3s ease}.modal-overlay.visible{opacity:1;visibility:visible}.chat-container{width:100%;height:100%;background:white;border-radius:12px;display:flex;flex-direction:column;border:1px solid #eee;position:relative;transform:scale(0.8);transition:transform 0.3s ease}.modal-overlay.visible .chat-container{transform:scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #eee;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s ease}.close-button:hover{background-color:rgba(255, 255, 255, 0.2)}.chat-content{flex:1;display:flex;flex-direction:column;padding:30px;min-height:0}.message-container{flex:1;overflow-y:auto;margin-bottom:20px;padding:20px;border:1px solid #eee;border-radius:8px;min-height:300px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.input-container{display:flex;gap:12px;align-items:center;background:white;padding:16px;border:1px solid #ddd;border-radius:8px}input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;transition:border-color 0.2s ease}input:focus{border-color:var(--main-color)}button{padding:12px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border:none;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600;transition:transform 0.2s ease, box-shadow 0.2s ease}button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(236, 102, 7, 0.3)}button:disabled{background:#cccccc;cursor:not-allowed;transform:none;box-shadow:none}.typing-indicator{display:none;margin:12px 0;max-width:80%;margin-right:auto}.typing-indicator.active{display:block}.typing-indicator .skeleton-container{margin:0;background:transparent;border:none;padding:12px 16px}.typing-indicator .skeleton-wrapper{gap:8px}.typing-indicator .skeleton-avatar{width:24px;height:24px;margin-bottom:0}.typing-indicator .skeleton-line{height:12px}.typing-indicator .skeleton-typing{margin-top:4px}.message-container::-webkit-scrollbar{width:8px}.message-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}.message-container::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}.message-container::-webkit-scrollbar-thumb:hover{background:#a1a1a1}@media (max-width: 768px){.chat-container{width:100%;height:100%;border-radius:8px}.modal-header{padding:15px 20px}.modal-title{font-size:1.25rem}.chat-content{padding:20px}.message{max-width:90%;padding:10px 12px}.input-container{padding:12px;gap:8px}input{padding:10px 12px}button{padding:10px 16px}}.ai-feedback-buttons{display:flex;gap:8px;margin-top:8px;align-items:center}.ai-feedback-buttons button{all:unset;cursor:pointer}.ai-feedback-buttons button:hover{all:unset;cursor:pointer}.markdown-content{line-height:1.6;color:inherit}.markdown-content h1,.markdown-content h2,.markdown-content h3,.markdown-content h4,.markdown-content h5,.markdown-content h6{margin:16px 0 8px 0;font-weight:600;line-height:1.3}.markdown-content h1{font-size:1.5em}.markdown-content h2{font-size:1.4em}.markdown-content h3{font-size:1.3em}.markdown-content h4{font-size:1.2em}.markdown-content h5{font-size:1.1em}.markdown-content h6{font-size:1em}.markdown-content p{margin:8px 0;line-height:1.6}.markdown-content ul,.markdown-content ol{margin:8px 0;padding-left:24px}.markdown-content li{margin:4px 0;line-height:1.5}.markdown-content blockquote{margin:12px 0;padding:8px 16px;border-left:4px solid var(--main-color);background-color:rgba(255, 136, 52, 0.1);border-radius:4px;font-style:italic}.markdown-content code{background-color:rgba(0, 0, 0, 0.1);padding:2px 6px;border-radius:3px;font-family:'Monaco', 'Menlo', 'Ubuntu Mono', monospace;font-size:0.9em}.markdown-content pre{background-color:rgba(0, 0, 0, 0.1);padding:12px;border-radius:6px;overflow-x:auto;margin:12px 0}.markdown-content pre code{background:none;padding:0;border-radius:0}.markdown-content strong{font-weight:600}.markdown-content em{font-style:italic}.markdown-content a{color:var(--main-color);text-decoration:none}.markdown-content a:hover{text-decoration:underline}.markdown-content table{border-collapse:collapse;width:100%;margin:12px 0}.markdown-content th,.markdown-content td{border:1px solid #ddd;padding:8px 12px;text-align:left}.markdown-content th{background-color:rgba(255, 136, 52, 0.1);font-weight:600}.markdown-content hr{border:none;border-top:1px solid #ddd;margin:16px 0}.thumb-up,.thumb-down{width:16px;height:16px}@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}.skeleton-container{position:relative}.skeleton-line{height:14px;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px;margin-bottom:8px;position:relative;overflow:hidden}.skeleton-line:last-child{margin-bottom:0}.skeleton-line.line-1{width:95%}.skeleton-line.line-2{width:88%}.skeleton-line.line-3{width:72%}.skeleton-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;margin-bottom:12px;display:inline-block}.skeleton-wrapper{display:flex;align-items:flex-start;gap:12px}.skeleton-content{flex:1}.skeleton-typing{display:flex;align-items:center;gap:4px;margin-top:8px}.skeleton-dot{width:6px;height:6px;border-radius:50%;background-color:#6c757d;animation:typing 1.4s infinite ease-in-out}.skeleton-dot:nth-child(1){animation-delay:-0.32s}.skeleton-dot:nth-child(2){animation-delay:-0.16s}.skeleton-dot:nth-child(3){animation-delay:0s}@keyframes typing{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}.skeleton-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);animation:glow 2s infinite;border-radius:inherit}@keyframes glow{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}";
+const chatModalCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;--main-color:#ff8834}p{all:unset}button{font-family:'Signika', serif, Arial, sans-serif}input{font-family:'Yantramanav', serif, Arial, sans-serif}.modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0, 0, 0, 0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity 0.3s ease, visibility 0.3s ease}.modal-overlay.visible{opacity:1;visibility:visible}.chat-container{width:100%;height:100%;background:white;border-radius:12px;display:flex;flex-direction:column;border:1px solid #eee;position:relative;transform:scale(0.8);transition:transform 0.3s ease}.modal-overlay.visible .chat-container{transform:scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #eee;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s ease}.close-button:hover{background-color:rgba(255, 255, 255, 0.2)}.chat-content{flex:1;display:flex;flex-direction:column;padding:30px;min-height:0}.message-container{flex:1;overflow-y:auto;margin-bottom:20px;padding:20px;border:1px solid #eee;border-radius:8px;min-height:300px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.input-container{display:flex;gap:12px;align-items:center;background:white;padding:16px;border:1px solid #ddd;border-radius:8px}input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;transition:border-color 0.2s ease}input:focus{border-color:var(--main-color)}button{padding:12px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border:none;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600;transition:transform 0.2s ease, box-shadow 0.2s ease}button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(236, 102, 7, 0.3)}button:disabled{background:#cccccc;cursor:not-allowed;transform:none;box-shadow:none}.typing-indicator{display:none;margin:12px 0;max-width:80%;margin-right:auto}.typing-indicator.active{display:block}.typing-indicator .skeleton-container{margin:0;background:transparent;border:none;padding:12px 16px}.typing-indicator .skeleton-wrapper{gap:8px}.typing-indicator .skeleton-avatar{width:24px;height:24px;margin-bottom:0}.typing-indicator .skeleton-line{height:12px}.typing-indicator .skeleton-typing{margin-top:4px}.message-container::-webkit-scrollbar{width:8px}.message-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}.message-container::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}.message-container::-webkit-scrollbar-thumb:hover{background:#a1a1a1}@media (max-width: 768px){.chat-container{width:100%;height:100%;border-radius:8px}.modal-header{padding:15px 20px}.modal-title{font-size:1.25rem}.chat-content{padding:20px}.message{max-width:90%;padding:10px 12px}.input-container{padding:12px;gap:8px}input{padding:10px 12px}button{padding:10px 16px}}.ai-feedback-buttons{display:flex;gap:8px;margin-top:8px;align-items:center}.ai-feedback-buttons button{all:unset;cursor:pointer}.ai-feedback-buttons button:hover{all:unset;cursor:pointer}.markdown-content{line-height:1.6;color:inherit}.markdown-content h1,.markdown-content h2,.markdown-content h3,.markdown-content h4,.markdown-content h5,.markdown-content h6{margin:16px 0 8px 0;font-weight:600;line-height:1.3}.markdown-content h1{font-size:1.5em}.markdown-content h2{font-size:1.4em}.markdown-content h3{font-size:1.3em}.markdown-content h4{font-size:1.2em}.markdown-content h5{font-size:1.1em}.markdown-content h6{font-size:1em}.markdown-content p{margin:8px 0;line-height:1.6}.markdown-content ul,.markdown-content ol{margin:8px 0;padding-left:24px}.markdown-content li{margin:4px 0;line-height:1.5}.markdown-content blockquote{margin:12px 0;padding:8px 16px;border-left:4px solid var(--main-color);background-color:rgba(255, 136, 52, 0.1);border-radius:4px;font-style:italic}.markdown-content code{background-color:rgba(0, 0, 0, 0.1);padding:2px 6px;border-radius:3px;font-family:'Monaco', 'Menlo', 'Ubuntu Mono', monospace;font-size:0.9em}.markdown-content pre{background-color:rgba(0, 0, 0, 0.1);padding:12px;border-radius:6px;overflow-x:auto;margin:12px 0}.markdown-content pre code{background:none;padding:0;border-radius:0}.markdown-content strong{font-weight:600}.markdown-content em{font-style:italic}.markdown-content a{color:var(--main-color);text-decoration:none}.markdown-content a:hover{text-decoration:underline}.markdown-content table{border-collapse:collapse;width:100%;margin:12px 0}.markdown-content th,.markdown-content td{border:1px solid #ddd;padding:8px 12px;text-align:left}.markdown-content th{background-color:rgba(255, 136, 52, 0.1);font-weight:600}.markdown-content hr{border:none;border-top:1px solid #ddd;margin:16px 0}.thumb-up,.thumb-down{width:16px;height:16px}@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}.skeleton-container{position:relative}.skeleton-line{height:14px;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px;margin-bottom:8px;position:relative;overflow:hidden}.skeleton-line:last-child{margin-bottom:0}.skeleton-line.line-1{width:95%}.skeleton-line.line-2{width:88%}.skeleton-line.line-3{width:72%}.skeleton-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;margin-bottom:12px;display:inline-block}.skeleton-wrapper{display:flex;align-items:flex-start;gap:12px}.skeleton-content{flex:1}.skeleton-typing{display:flex;align-items:center;gap:4px;margin-top:8px}.skeleton-dot{width:6px;height:6px;border-radius:50%;background-color:#6c757d;animation:typing 1.4s infinite ease-in-out}.skeleton-dot:nth-child(1){animation-delay:-0.32s}.skeleton-dot:nth-child(2){animation-delay:-0.16s}.skeleton-dot:nth-child(3){animation-delay:0s}@keyframes typing{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}.skeleton-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);animation:glow 2s infinite;border-radius:inherit}@keyframes glow{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}.context-banner{display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(255, 136, 52, 0.08);border-bottom:1px solid rgba(255, 136, 52, 0.25);font-size:0.85em}.context-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#8a4416}.context-change{flex-shrink:0;background:none;border:none;padding:2px 4px;color:#6b6b6b;font-size:0.95em;cursor:pointer;text-decoration:underline}.context-change:hover{color:var(--main-color)}.scope-notice{margin-bottom:8px;padding:8px 10px;background:#f4f6f8;border-left:3px solid var(--main-color);border-radius:4px;font-size:0.85em;color:#4a4a4a}";
 
 const ChatModal = class {
     constructor(hostRef) {
@@ -3021,6 +3022,10 @@ const ChatModal = class {
     iconSize = 16;
     apiEndpoint = index.Env.API_URL;
     conversationId = '';
+    /** 'navigating' : arbre affiché, saisie bloquée. 'chatting' : saisie ouverte. */
+    mode = 'navigating';
+    contextNodeId = null;
+    contextPath = [];
     componentWillLoad() {
         this.conversationId = generateConversationId();
         console.log('Generated conversation ID:', this.conversationId);
@@ -3040,6 +3045,29 @@ const ChatModal = class {
             document.head.appendChild(link);
         }
     }
+    handleLeafSelected = (e) => {
+        const { node, path } = e.detail;
+        this.contextNodeId = node.id;
+        this.contextPath = path.map(n => n.label);
+        this.mode = 'chatting';
+        if (node.intro_message) {
+            this.messages = [
+                ...this.messages,
+                { role: 'ai', content: node.intro_message, isComplete: true, messageId: generateMessageId() },
+            ];
+        }
+    };
+    /** Échappatoire : interroger tout le corpus FASTT sans passer par l'arbre. */
+    handleSkip = () => {
+        this.contextNodeId = null;
+        this.contextPath = [];
+        this.mode = 'chatting';
+    };
+    changeTheme = () => {
+        this.contextNodeId = null;
+        this.contextPath = [];
+        this.mode = 'navigating';
+    };
     handleChunk = async (message) => {
         try {
             const aiMessageIndex = this.messages.length - 1;
@@ -3052,14 +3080,20 @@ const ChatModal = class {
                 this.isLoading = false;
             }, (error) => {
                 console.error('AI stream error:', error);
-                this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, content: 'Sorry, I encountered an error. Please try again.', isComplete: true } : msg);
+                this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, content: "Désolé, une erreur s'est produite. Veuillez réessayer.", isComplete: true } : msg);
                 this.isLoading = false;
+            }, this.contextNodeId, (scope) => {
+                // Bandeau déterministe : le serveur sait avec certitude qu'il a élargi
+                // la recherche, inutile de demander au modèle de l'annoncer.
+                if (scope.notice_key === 'out_of_scope') {
+                    this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, outOfScopePath: scope.path } : msg);
+                }
             });
         }
         catch (error) {
             console.error('Failed to call AI stream:', error);
             const aiMessageIndex = this.messages.length - 1;
-            this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, content: 'Sorry, I encountered an error. Please try again.', isComplete: true } : msg);
+            this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, content: "Désolé, une erreur s'est produite. Veuillez réessayer.", isComplete: true } : msg);
             this.isLoading = false;
         }
     };
@@ -3067,11 +3101,16 @@ const ChatModal = class {
         e.preventDefault();
         const form = e.target;
         const input = form.querySelector('input[name="message"]');
-        const message = input.value;
-        this.messages.push({ role: 'user', content: message, messageId: generateMessageId() });
+        const message = input.value.trim();
+        if (!message)
+            return;
+        this.messages = [
+            ...this.messages,
+            { role: 'user', content: message, messageId: generateMessageId() },
+            { role: 'ai', content: '', messageId: generateMessageId() },
+        ];
         this.isLoading = true;
         form.reset();
-        this.messages.push({ role: 'ai', content: '', messageId: generateMessageId() });
         await this.handleChunk(message);
     };
     renderMarkdown(content) {
@@ -3099,12 +3138,19 @@ const ChatModal = class {
             return content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
     }
+    renderContextBanner() {
+        if (this.mode !== 'chatting')
+            return null;
+        const label = this.contextPath.length > 0 ? this.contextPath.join(' › ') : 'Toutes les informations FASTT';
+        return (index.h("div", { class: "context-banner" }, index.h("span", { class: "context-label", title: label }, label), index.h("button", { type: "button", class: "context-change", onClick: this.changeTheme }, "Changer de th\u00E8me")));
+    }
     render() {
-        return (index.h(index.Host, { key: '7396e30f104ca6fc0a7cce1d4af9080058df3d2c' }, index.h("div", { key: '87b1645fc35f50c0033281b4ea8a12fe0946d685', class: "chat-container" }, index.h("div", { key: '1da15d0aca3b337260400b0acbc56b28a34af76b', class: "modal-header" }, index.h("span", { key: 'ac580439a4b570c088fb004ee7b16762f8607898', class: "modal-title" }, this.modalTitle)), index.h("div", { key: '1c9163fd2d71c08cd9dba9bf7969618e92a314ef', class: "chat-content" }, index.h("div", { key: '0bfe2fdcbb92314fa75047792372c4a7629584f0', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
+        const navigating = this.mode === 'navigating';
+        return (index.h(index.Host, { key: '7c9cb81a137816d9fe4c85e41f8c076455dbc208' }, index.h("div", { key: '892a6af1c520b0a834d7fffc01e976a3c209eaf3', class: "chat-container" }, index.h("div", { key: 'f5150c522a2010ce7d66a9b3ca695e36f7c4aa35', class: "modal-header" }, index.h("span", { key: 'dacd542d9b9aeb02ffcf4e1d679d679ad21e5f4c', class: "modal-title" }, this.modalTitle)), this.renderContextBanner(), index.h("div", { key: '3a948f6ba94e1084b572d8df0b5cb5ab8f879d2f', class: "chat-content" }, index.h("div", { key: '6604df81c1cb73b0f5d90b0136575a19c1d06707', class: "message-container" }, navigating && (index.h("decision-tree-nav", { key: '8f000a2911a78c6323ea851ba5e69cb767107836', apiEndpoint: this.apiEndpoint, onLeafSelected: this.handleLeafSelected, onSkipRequested: this.handleSkip })), !navigating && this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? index.h("chat-skeleton", null) : index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (index.h("p", null, message.content)))))), index.h("form", { key: '1b62c117e805ad1f7289b3f0ade37f334efe59b5', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '27e5ec69c1bf04c84879b438ff300f328164d103', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), index.h("button", { key: '3f43a5c95013f07122752be3a6ab62478396e6cc', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (index.h(index.Fragment, null, message.outOfScopePath && message.outOfScopePath.length > 0 && (index.h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", message.outOfScopePath.join(' › '), " \u00BB. J'ai cherch\u00E9 dans l'ensemble des informations FASTT.")), this.isLoading && message.content === '' ? index.h("chat-skeleton", null) : index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (index.h("p", null, message.content)))))), index.h("form", { key: '0d96fc9d11499ea1a7776eb6d79e72399c2b5603', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '53143010d9e33fa58eca1d0b46b960293c47e1c2', name: "message", type: "text", placeholder: navigating ? 'Choisissez d’abord un thème ci-dessus' : 'Tapez votre message ici...', disabled: this.isLoading || navigating }), index.h("button", { key: '8d14775930a96feea1b817c25ba288b17804ad96', type: "submit", disabled: this.isLoading || navigating, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, index.h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), index.h("path", { d: "M6 12h16" })))))))));
     }
 };
 ChatModal.style = chatModalCss;
@@ -3116,12 +3162,12 @@ const ChatSkeleton = class {
         index.registerInstance(this, hostRef);
     }
     render() {
-        return (index.h(index.Host, { key: 'ebdf437a8d516e0e27516e505a65c5702ae33f4b' }, index.h("div", { key: 'c1b212392b3ab4f8266da7a9f584fec3092424ea', class: 'skeleton-container' }, index.h("div", { key: 'df3f4db997842505bc17545233eef3e8e036f952', class: 'skeleton-typing' }, index.h("div", { key: '6b4f9796edd6243865e65c31e399eaf38054372c', class: 'skeleton-dot' }), index.h("div", { key: '2f0be9e8816c203079b8b2697574ac22d49f07a7', class: 'skeleton-dot' })))));
+        return (index.h(index.Host, { key: 'bdd4d9caa9a70feb30f9a5d614693e13d8e90766' }, index.h("div", { key: '25a58430b59cbfc4274600d9bce09f32bfd90399', class: 'skeleton-container' }, index.h("div", { key: '24f68cdc75130deddb5262a7c31bc0efee18f2a8', class: 'skeleton-typing' }, index.h("div", { key: 'f1d5eaf22fb6b6b2b481bd438afc8dfddaa6a61e', class: 'skeleton-dot' }), index.h("div", { key: 'f65f54b658580f831b230478256c54bb908af1a7', class: 'skeleton-dot' })))));
     }
 };
 ChatSkeleton.style = chatSkeletonCss;
 
-const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:10vh;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.message-container{flex:1;padding:16px;overflow-y:scroll;background:#f7fafc;min-height:250px;max-height:250px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--main-color);color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}.markdown-content{line-height:1.5}.markdown-content a{color:var(--main-color);text-decoration:underline}.markdown-content p{margin:0 0 8px 0}.markdown-content p:last-child{margin-bottom:0}";
+const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:10vh;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.message-container{flex:1;padding:16px;overflow-y:scroll;background:#f7fafc;min-height:250px;max-height:250px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--main-color);color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}.markdown-content{line-height:1.5}.markdown-content a{color:var(--main-color);text-decoration:underline}.markdown-content p{margin:0 0 8px 0}.markdown-content p:last-child{margin-bottom:0}.context-banner{display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(255, 136, 52, 0.08);border-bottom:1px solid rgba(255, 136, 52, 0.25);font-size:0.85em}.context-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:#8a4416}.context-change{flex-shrink:0;background:none;border:none;padding:2px 4px;color:#6b6b6b;font-size:0.95em;cursor:pointer;text-decoration:underline}.context-change:hover{color:var(--main-color)}.scope-notice{margin-bottom:8px;padding:8px 10px;background:#f4f6f8;border-left:3px solid var(--main-color);border-radius:4px;font-size:0.85em;color:#4a4a4a}";
 
 const ChatWidget = class {
     constructor(hostRef) {
@@ -3132,6 +3178,10 @@ const ChatWidget = class {
     isChatContainerVisible = true;
     apiEndpoint = index.Env.API_URL;
     conversationId = '';
+    /** 'navigating' : arbre affiché, saisie bloquée. 'chatting' : saisie ouverte. */
+    mode = 'navigating';
+    contextNodeId = null;
+    contextPath = [];
     inputEl;
     componentWillLoad() {
         // Initialize conversation ID when component first loads
@@ -3154,6 +3204,29 @@ const ChatWidget = class {
             document.head.appendChild(link);
         }
     }
+    handleLeafSelected = (e) => {
+        const { node, path } = e.detail;
+        this.contextNodeId = node.id;
+        this.contextPath = path.map(n => n.label);
+        this.mode = 'chatting';
+        if (node.intro_message) {
+            this.messages = [
+                ...this.messages,
+                { role: 'ai', content: node.intro_message, isComplete: true, messageId: generateMessageId() },
+            ];
+        }
+    };
+    /** Échappatoire : interroger tout le corpus FASTT sans passer par l'arbre. */
+    handleSkip = () => {
+        this.contextNodeId = null;
+        this.contextPath = [];
+        this.mode = 'chatting';
+    };
+    changeTheme = () => {
+        this.contextNodeId = null;
+        this.contextPath = [];
+        this.mode = 'navigating';
+    };
     handleSubmit = async (e) => {
         e.preventDefault();
         const input = this.inputEl;
@@ -3181,18 +3254,22 @@ const ChatWidget = class {
                 const newMessages = [...this.messages];
                 newMessages[aiMessageIndex] = {
                     ...newMessages[aiMessageIndex],
-                    content: 'Sorry, I encountered an error. Please try again.',
+                    content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
                     isComplete: true,
                 };
                 this.messages = newMessages;
                 this.isLoading = false;
+            }, this.contextNodeId, (scope) => {
+                if (scope.notice_key === 'out_of_scope') {
+                    this.messages = this.messages.map((msg, index) => index === aiMessageIndex ? { ...msg, outOfScopePath: scope.path } : msg);
+                }
             });
         }
         catch (error) {
             const newMessages = [...this.messages];
             newMessages[aiMessageIndex] = {
                 ...newMessages[aiMessageIndex],
-                content: 'Sorry, I encountered an error. Please try again.',
+                content: "Désolé, une erreur s'est produite. Veuillez réessayer.",
                 isComplete: true,
             };
             this.messages = newMessages;
@@ -3232,19 +3309,89 @@ const ChatWidget = class {
     }
     render() {
         return [
-            index.h("div", { key: '316ba9c2887a4470e2ae20daf1fa9b2c6eb82f5b', class: {
+            index.h("div", { key: 'f5d37632179645ff98432b5af1da98b69b6978a6', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, index.h("div", { key: 'fb2c6a5a8b1dae0f1d494de6a49094f51267ea99', class: "chat-header" }, index.h("h3", { key: '0e6c0c699276b32352c107baa0306a17b3b1870d', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: '37019440d97e2a8cfec5c1b4eea3821b1a1bcfa9', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), index.h("div", { key: '9d7d0ed0c7c5367dbb31ec7eea91d2dd200364f9', class: "message-container" }, this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
+                } }, index.h("div", { key: '01cd4a96b5e41986485a11dbb7e2ed393e92b871', class: "chat-header" }, index.h("h3", { key: '27dea1858ddb681bb895235d5d7e292099c3b567', class: "chat-title" }, "Que puis-je faire pour vous ?"), index.h("button", { key: 'f5f2a78837500fbd2a2893261ee5092ab7804c15', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), this.mode === 'chatting' && (index.h("div", { key: 'f015bf4580fb0aae04c612f10f1115081a9dced9', class: "context-banner" }, index.h("span", { key: 'abe2a95360719779c13c4514c835d2291f4dc209', class: "context-label" }, this.contextPath.length > 0 ? this.contextPath.join(' › ') : 'Toutes les informations FASTT'), index.h("button", { key: '836bb51f00f9995b3c33fca7ea540adcd88174ba', type: "button", class: "context-change", onClick: this.changeTheme }, "Changer de th\u00E8me"))), index.h("div", { key: 'a9dd50f1a879ed2d0a968666689f97dd9999fdfc', class: "message-container" }, this.mode === 'navigating' && (index.h("decision-tree-nav", { key: 'a0cdea32da1cc0873f9c3d1a952a6d8671ba4e95', apiEndpoint: this.apiEndpoint, onLeafSelected: this.handleLeafSelected, onSkipRequested: this.handleSkip })), this.mode === 'chatting' && this.messages.map((message, index$1) => (index.h("div", { key: index$1, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
-                } }, message.role === 'ai' ? (index.h(index.h.Fragment, null, this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : (index.h(index.h.Fragment, null, index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (index.h("span", null, message.content)))))), index.h("form", { key: 'f1d441afd5f3e21169cc004071181a81356a2cca', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: 'adad055129ee55ea30bafd401e8299d732312077', type: "text", placeholder: "Tapez un message...", name: "message", required: true, class: "input", ref: this.setInputRef }), index.h("button", { key: '155a3aa537020e026dfcff09ebc0f7915ba989f4', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            index.h("button", { key: '6b1a85ca4bc0a76610bc623bf2d73b46b4a8d1d1', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: 'a2cc9025c7c091e8058c9acf21c0c4aa3504498f', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("path", { key: 'e5d99bf1b450a1cd9a7cd8cd38f119f44aeef272', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
+                } }, message.role === 'ai' ? (index.h(index.Fragment, null, message.outOfScopePath && message.outOfScopePath.length > 0 && (index.h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", message.outOfScopePath.join(' › '), " \u00BB. J'ai cherch\u00E9 dans l'ensemble des informations FASTT.")), this.isLoading && message.content === '' ? (index.h("chat-skeleton", null)) : (index.h(index.Fragment, null, index.h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && index.h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (index.h("span", null, message.content)))))), index.h("form", { key: '77395a86706643ee8352d148194223c38c792b77', class: "input-container", onSubmit: this.handleSubmit }, index.h("input", { key: '281f7b5e6a90204cb6ce4bde0873ce9149c21cdb', type: "text", placeholder: this.mode === 'navigating' ? 'Choisissez d’abord un thème ci-dessus' : 'Tapez un message...', name: "message", required: true, class: "input", disabled: this.isLoading || this.mode === 'navigating', ref: this.setInputRef }), index.h("button", { key: 'c73baee569a57a8d7f20b4982589826ec100d479', type: "submit", disabled: this.isLoading || this.mode === 'navigating', class: "send-button" }, this.isLoading ? ('Envoi...') : (index.h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), index.h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            index.h("button", { key: '4fd4aa3a954b139f0babdbc049df6044c46da827', class: "chat-toggler", onClick: this.toggleChatContainer }, index.h("svg", { key: 'ca94263006f3b44e03d816bd49793cff4e6a3e78', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, index.h("path", { key: '619e25ba125e9c831bbbcc4fc5fe176f292c8942', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
         ];
     }
 };
 ChatWidget.style = chatWidgetCss;
+
+const decisionTreeNavCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;--main-color:#ff8834;display:block}button{font-family:'Signika', serif, Arial, sans-serif}.tree{display:flex;flex-direction:column;gap:14px;padding:4px 2px}.tree-status{padding:20px 8px;color:#666;font-size:0.95em;display:flex;flex-direction:column;gap:10px;align-items:flex-start}.tree-error{color:#b3261e}.tree-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:4px;font-size:0.85em}.crumb-group{display:inline-flex;align-items:center;gap:4px}.crumb{background:none;border:none;padding:2px 4px;color:var(--main-color);cursor:pointer;font-size:inherit;border-radius:4px}.crumb:hover:not(:disabled){background:rgba(255, 136, 52, 0.12)}.crumb:disabled{color:#666;cursor:default;font-weight:600}.crumb-sep{color:#aaa}.tree-prompt{all:unset;display:block;font-family:'Signika', serif, Arial, sans-serif;font-weight:600;font-size:1.02em;color:#222}.tree-options{display:flex;flex-direction:column;gap:8px}.tree-option{display:flex;flex-direction:column;gap:2px;text-align:left;width:100%;padding:12px 14px;background:#fff;border:1px solid #e3e3e3;border-radius:10px;cursor:pointer;transition:border-color 0.15s ease, box-shadow 0.15s ease}.tree-option:hover,.tree-option:focus-visible{border-color:var(--main-color);box-shadow:0 1px 6px rgba(255, 136, 52, 0.18);outline:none}.option-label{font-weight:600;font-size:0.98em;color:#1c1c1c}.option-description{font-family:'Yantramanav', serif, Arial, sans-serif;font-size:0.85em;color:#6b6b6b}.tree-footer{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.tree-link{background:none;border:none;padding:4px 2px;color:#6b6b6b;font-size:0.85em;cursor:pointer;text-decoration:underline}.tree-link:hover{color:var(--main-color)}.tree-skip{margin-left:auto}";
+
+const DecisionTreeNav = class {
+    constructor(hostRef) {
+        index.registerInstance(this, hostRef);
+        this.leafSelected = index.createEvent(this, "leafSelected");
+        this.skipRequested = index.createEvent(this, "skipRequested");
+    }
+    apiEndpoint = '';
+    /** Permet de sauter l'arbre et d'interroger l'ensemble du corpus FASTT. */
+    allowSkip = true;
+    nodes = [];
+    path = [];
+    isLoading = true;
+    error = '';
+    /** Émis quand une feuille est atteinte : le chat peut s'ouvrir. */
+    leafSelected;
+    /** Émis quand l'utilisateur choisit de poser directement sa question. */
+    skipRequested;
+    async componentWillLoad() {
+        await this.load();
+    }
+    async load() {
+        this.isLoading = true;
+        this.error = '';
+        try {
+            this.nodes = await fetchDecisionTree(this.apiEndpoint);
+            if (this.nodes.length === 0) {
+                // Aucun arbre configuré : ne pas bloquer l'utilisateur dans une impasse.
+                this.skipRequested.emit();
+            }
+        }
+        catch (e) {
+            this.error = "Les thèmes n'ont pas pu être chargés.";
+            console.error('decision-tree-nav:', e);
+        }
+        finally {
+            this.isLoading = false;
+        }
+    }
+    /** Options affichées au niveau courant. */
+    get options() {
+        const current = this.path[this.path.length - 1];
+        return current ? current.children : this.nodes;
+    }
+    select = (node) => {
+        const nextPath = [...this.path, node];
+        // Une feuille, ou un nœud sans enfant, termine la navigation.
+        if (node.is_leaf || node.children.length === 0) {
+            this.leafSelected.emit({ node, path: nextPath });
+            return;
+        }
+        this.path = nextPath;
+    };
+    goTo = (index) => {
+        this.path = this.path.slice(0, index);
+    };
+    render() {
+        if (this.isLoading) {
+            return (index.h(index.Host, null, index.h("div", { class: "tree-status" }, "Chargement des th\u00E8mes\u2026")));
+        }
+        if (this.error) {
+            return (index.h(index.Host, null, index.h("div", { class: "tree-status tree-error" }, this.error, index.h("button", { type: "button", class: "tree-link", onClick: () => this.load() }, "R\u00E9essayer"), this.allowSkip && (index.h("button", { type: "button", class: "tree-link", onClick: () => this.skipRequested.emit() }, "Poser directement ma question")))));
+        }
+        const current = this.path[this.path.length - 1];
+        return (index.h(index.Host, null, index.h("div", { class: "tree" }, this.path.length > 0 && (index.h("nav", { class: "tree-breadcrumb", "aria-label": "Fil d'Ariane" }, index.h("button", { type: "button", class: "crumb", onClick: () => this.goTo(0) }, "Th\u00E8mes"), this.path.map((node, index$1) => (index.h("span", { key: node.id, class: "crumb-group" }, index.h("span", { class: "crumb-sep", "aria-hidden": "true" }, "\u203A"), index.h("button", { type: "button", class: "crumb", onClick: () => this.goTo(index$1 + 1), disabled: index$1 === this.path.length - 1 }, node.label)))))), index.h("p", { class: "tree-prompt" }, current ? current.label : 'Sur quel sujet portez-vous votre demande ?'), index.h("div", { class: "tree-options" }, this.options.map(node => (index.h("button", { key: node.id, type: "button", class: "tree-option", onClick: () => this.select(node) }, index.h("span", { class: "option-label" }, node.label), node.description && index.h("span", { class: "option-description" }, node.description))))), index.h("div", { class: "tree-footer" }, this.path.length > 0 && (index.h("button", { type: "button", class: "tree-link", onClick: () => this.goTo(this.path.length - 1) }, "\u2190 Retour")), this.allowSkip && (index.h("button", { type: "button", class: "tree-link tree-skip", onClick: () => this.skipRequested.emit() }, "Poser directement ma question"))))));
+    }
+};
+DecisionTreeNav.style = decisionTreeNavCss;
 
 class SatisfactionStateService {
     state = new Map();
@@ -3318,7 +3465,7 @@ const SatisfactionButtons = class {
         });
     };
     render() {
-        return (index.h(index.Host, { key: 'd4ebe6e85f8dd4441b2afadae429c08ad9df16fe' }, index.h("div", { key: 'fea4ec050ce3d6808b13f0cc4f39819db9a9167b', class: "satisfaction-container" }, index.h("div", { key: '942733373cc4bd36a921b53b3091f2540accedf4', class: "satisfaction-buttons" }, index.h("button", { key: '79c3b9b58734fb80bc3ae25701676164db7e8cb8', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, index.h("svg", { key: 'd1f69734f7872bed204ceeb27a2c80c2021150e5', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, index.h("path", { key: '8842229d6499169d7425c2bbea78f26d61c78b7c', d: "M7 10v12" }), index.h("path", { key: 'f8d569ed5bc4a703b0f9aba55754feb92c65d81d', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), index.h("button", { key: '9537896f5f742df0dd96eb37b250846724f6f1f7', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, index.h("svg", { key: 'c69fd8461052c1e336e0eddd04a63ec7bf6ee0ff', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, index.h("path", { key: '2def566636fd48dfbe77c04ec045832551828e5d', d: "M17 14V2" }), index.h("path", { key: '538bf1d23a7d3ddba3ef3f91d9220c11d54209b2', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
+        return (index.h(index.Host, { key: '62d5c41f1e5ab668d2131b7a67a5e039cb8a026e' }, index.h("div", { key: 'c158319ed0c64790cbd854ee73e206630df9a6de', class: "satisfaction-container" }, index.h("div", { key: 'bb7b1448d90fd5199e1a52c21564caaa960ecf29', class: "satisfaction-buttons" }, index.h("button", { key: '7ebcfe00df09f4174ae6f4138e40f21c5a2deb95', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, index.h("svg", { key: '175478fc8b07a322ecb7ce864bd2ee7338257bc6', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, index.h("path", { key: '384679db8cd94757a0e787f1d3d54ba44f5baaf3', d: "M7 10v12" }), index.h("path", { key: '61d262baa34e1ce230fcadf5bf920376346dcfda', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), index.h("button", { key: '839bff869d70d17586a6c272490524d44d2efeed', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, index.h("svg", { key: 'e012fec418473aba3ba07ef873c0158a9e94fdc9', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, index.h("path", { key: '6f2a3635c6747de52a6bae2d11fc4eab5eef1008', d: "M17 14V2" }), index.h("path", { key: '7afa6822c604ffd4b7265fca37293016c161f8d5', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
     }
 };
 SatisfactionButtons.style = satisfactionButtonsCss;
@@ -3326,7 +3473,8 @@ SatisfactionButtons.style = satisfactionButtonsCss;
 exports.chat_modal = ChatModal;
 exports.chat_skeleton = ChatSkeleton;
 exports.chat_widget = ChatWidget;
+exports.decision_tree_nav = DecisionTreeNav;
 exports.satisfaction_buttons = SatisfactionButtons;
-//# sourceMappingURL=chat-modal.chat-skeleton.chat-widget.satisfaction-buttons.entry.cjs.js.map
+//# sourceMappingURL=chat-modal.chat-skeleton.chat-widget.decision-tree-nav.satisfaction-buttons.entry.cjs.js.map
 
-//# sourceMappingURL=chat-modal_4.cjs.entry.js.map
+//# sourceMappingURL=chat-modal_5.cjs.entry.js.map

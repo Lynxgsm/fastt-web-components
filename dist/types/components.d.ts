@@ -6,7 +6,9 @@
  */
 import { HTMLStencilElement, JSXBase } from "./stencil-public-runtime";
 import { TitleStyle } from "./components/chat-modal/types";
+import { DecisionNode } from "./utils/api-service";
 export { TitleStyle } from "./components/chat-modal/types";
+export { DecisionNode } from "./utils/api-service";
 export namespace Components {
     interface ChatModal {
         /**
@@ -34,6 +36,22 @@ export namespace Components {
          */
         "apiEndpoint": string;
     }
+    /**
+     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
+     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
+     * regroupement par thème.
+     */
+    interface DecisionTreeNav {
+        /**
+          * Permet de sauter l'arbre et d'interroger l'ensemble du corpus FASTT.
+          * @default true
+         */
+        "allowSkip": boolean;
+        /**
+          * @default ''
+         */
+        "apiEndpoint": string;
+    }
     interface SatisfactionButtons {
         /**
           * @default (Env.API_URL = 'https://fastt.celaneo.com')
@@ -44,6 +62,10 @@ export namespace Components {
          */
         "messageId": string;
     }
+}
+export interface DecisionTreeNavCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLDecisionTreeNavElement;
 }
 declare global {
     interface HTMLChatModalElement extends Components.ChatModal, HTMLStencilElement {
@@ -64,6 +86,29 @@ declare global {
         prototype: HTMLChatWidgetElement;
         new (): HTMLChatWidgetElement;
     };
+    interface HTMLDecisionTreeNavElementEventMap {
+        "leafSelected": { node: DecisionNode; path: DecisionNode[] };
+        "skipRequested": void;
+    }
+    /**
+     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
+     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
+     * regroupement par thème.
+     */
+    interface HTMLDecisionTreeNavElement extends Components.DecisionTreeNav, HTMLStencilElement {
+        addEventListener<K extends keyof HTMLDecisionTreeNavElementEventMap>(type: K, listener: (this: HTMLDecisionTreeNavElement, ev: DecisionTreeNavCustomEvent<HTMLDecisionTreeNavElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
+        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLDecisionTreeNavElementEventMap>(type: K, listener: (this: HTMLDecisionTreeNavElement, ev: DecisionTreeNavCustomEvent<HTMLDecisionTreeNavElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
+        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
+    }
+    var HTMLDecisionTreeNavElement: {
+        prototype: HTMLDecisionTreeNavElement;
+        new (): HTMLDecisionTreeNavElement;
+    };
     interface HTMLSatisfactionButtonsElement extends Components.SatisfactionButtons, HTMLStencilElement {
     }
     var HTMLSatisfactionButtonsElement: {
@@ -74,6 +119,7 @@ declare global {
         "chat-modal": HTMLChatModalElement;
         "chat-skeleton": HTMLChatSkeletonElement;
         "chat-widget": HTMLChatWidgetElement;
+        "decision-tree-nav": HTMLDecisionTreeNavElement;
         "satisfaction-buttons": HTMLSatisfactionButtonsElement;
     }
 }
@@ -104,6 +150,30 @@ declare namespace LocalJSX {
          */
         "apiEndpoint"?: string;
     }
+    /**
+     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
+     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
+     * regroupement par thème.
+     */
+    interface DecisionTreeNav {
+        /**
+          * Permet de sauter l'arbre et d'interroger l'ensemble du corpus FASTT.
+          * @default true
+         */
+        "allowSkip"?: boolean;
+        /**
+          * @default ''
+         */
+        "apiEndpoint"?: string;
+        /**
+          * Émis quand une feuille est atteinte : le chat peut s'ouvrir.
+         */
+        "onLeafSelected"?: (event: DecisionTreeNavCustomEvent<{ node: DecisionNode; path: DecisionNode[] }>) => void;
+        /**
+          * Émis quand l'utilisateur choisit de poser directement sa question.
+         */
+        "onSkipRequested"?: (event: DecisionTreeNavCustomEvent<void>) => void;
+    }
     interface SatisfactionButtons {
         /**
           * @default (Env.API_URL = 'https://fastt.celaneo.com')
@@ -118,6 +188,7 @@ declare namespace LocalJSX {
         "chat-modal": ChatModal;
         "chat-skeleton": ChatSkeleton;
         "chat-widget": ChatWidget;
+        "decision-tree-nav": DecisionTreeNav;
         "satisfaction-buttons": SatisfactionButtons;
     }
 }
@@ -128,6 +199,12 @@ declare module "@stencil/core" {
             "chat-modal": LocalJSX.ChatModal & JSXBase.HTMLAttributes<HTMLChatModalElement>;
             "chat-skeleton": LocalJSX.ChatSkeleton & JSXBase.HTMLAttributes<HTMLChatSkeletonElement>;
             "chat-widget": LocalJSX.ChatWidget & JSXBase.HTMLAttributes<HTMLChatWidgetElement>;
+            /**
+             * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
+             * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
+             * regroupement par thème.
+             */
+            "decision-tree-nav": LocalJSX.DecisionTreeNav & JSXBase.HTMLAttributes<HTMLDecisionTreeNavElement>;
             "satisfaction-buttons": LocalJSX.SatisfactionButtons & JSXBase.HTMLAttributes<HTMLSatisfactionButtonsElement>;
         }
     }

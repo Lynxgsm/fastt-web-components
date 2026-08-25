@@ -30,7 +30,7 @@ function handleStreamLine(line, cb) {
     }
     return false;
 }
-export async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError, contextNodeId = null, onScope) {
+async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError, contextNodeId = null, onScope) {
     const cb = { onChunk, onComplete, onScope };
     try {
         const response = await fetch(`${apiEndpoint}/conversation/stream`, {
@@ -80,7 +80,7 @@ export async function callAIStream(message, apiEndpoint, conversationId, onChunk
         onError?.(error);
     }
 }
-export async function fetchDecisionTree(apiEndpoint) {
+async function fetchDecisionTree(apiEndpoint) {
     const response = await fetch(`${apiEndpoint}/decision-tree/`);
     if (!response.ok) {
         throw new Error(`Impossible de charger l'arbre: ${response.status}`);
@@ -88,28 +88,7 @@ export async function fetchDecisionTree(apiEndpoint) {
     const data = await response.json();
     return data.nodes || [];
 }
-export async function handleFeedback(isSatisfied, apiEndpoint, conversationId, onComplete, onError) {
-    try {
-        const response = await fetch(`${apiEndpoint}/conversation/feedback`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                conversation_id: conversationId,
-                is_satisfied: isSatisfied,
-            }),
-        });
-        if (!response.ok) {
-            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-        }
-        onComplete?.();
-    }
-    catch (error) {
-        onError?.(error);
-    }
-}
-export async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId, onComplete, onError) {
+async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId, onComplete, onError) {
     try {
         const response = await fetch(`${apiEndpoint}/conversation/message/${messageId}/feedback`, {
             method: 'POST',
@@ -127,7 +106,10 @@ export async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId,
         onComplete?.();
     }
     catch (error) {
-        onError?.(error);
     }
 }
-//# sourceMappingURL=api-service.js.map
+
+export { callAIStream as c, fetchDecisionTree as f, handleMessageFeedback as h };
+//# sourceMappingURL=p-CQjhvsDP.js.map
+
+//# sourceMappingURL=p-CQjhvsDP.js.map

@@ -488,6 +488,11 @@ createSupportsRuleRe(":host");
 createSupportsRuleRe(":host-context");
 var parsePropertyValue = (propValue, propType, isFormAssociated) => {
   if (propValue != null && !isComplexType(propValue)) {
+    if (propType & 4 /* Boolean */) {
+      {
+        return propValue === "false" ? false : propValue === "" || !!propValue;
+      }
+    }
     if (propType & 2 /* Number */) {
       return typeof propValue === "string" ? parseFloat(propValue) : typeof propValue === "number" ? propValue : NaN;
     }
@@ -497,6 +502,25 @@ var parsePropertyValue = (propValue, propType, isFormAssociated) => {
     return propValue;
   }
   return propValue;
+};
+var getElement = (ref) => {
+  var _a;
+  return (_a = getHostRef(ref)) == null ? void 0 : _a.$hostElement$ ;
+};
+
+// src/runtime/event-emitter.ts
+var createEvent = (ref, name, flags) => {
+  const elm = getElement(ref);
+  return {
+    emit: (detail) => {
+      return emitEvent(elm, name, {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+        detail
+      });
+    }
+  };
 };
 var emitEvent = (elm, name, opts) => {
   const ev = plt.ce(name, opts);
@@ -1448,17 +1472,22 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
   endBootstrap();
 };
 
+// src/runtime/fragment.ts
+var Fragment = (_, children) => children;
+
 // src/runtime/nonce.ts
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
 exports.Env = Env;
+exports.Fragment = Fragment;
 exports.Host = Host;
 exports.bootstrapLazy = bootstrapLazy;
+exports.createEvent = createEvent;
 exports.globalScripts = globalScripts;
 exports.h = h;
 exports.promiseResolve = promiseResolve;
 exports.registerInstance = registerInstance;
 exports.setNonce = setNonce;
-//# sourceMappingURL=index-BoNdwW5P.js.map
+//# sourceMappingURL=index-C7XhOpRA.js.map
 
-//# sourceMappingURL=index-BoNdwW5P.js.map
+//# sourceMappingURL=index-C7XhOpRA.js.map

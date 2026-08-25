@@ -9,7 +9,7 @@ const ChatSkeleton = /*@__PURE__*/ proxyCustomElement(class ChatSkeleton extends
         this.__attachShadow();
     }
     render() {
-        return (h(Host, { key: 'ebdf437a8d516e0e27516e505a65c5702ae33f4b' }, h("div", { key: 'c1b212392b3ab4f8266da7a9f584fec3092424ea', class: 'skeleton-container' }, h("div", { key: 'df3f4db997842505bc17545233eef3e8e036f952', class: 'skeleton-typing' }, h("div", { key: '6b4f9796edd6243865e65c31e399eaf38054372c', class: 'skeleton-dot' }), h("div", { key: '2f0be9e8816c203079b8b2697574ac22d49f07a7', class: 'skeleton-dot' })))));
+        return (h(Host, { key: 'bdd4d9caa9a70feb30f9a5d614693e13d8e90766' }, h("div", { key: '25a58430b59cbfc4274600d9bce09f32bfd90399', class: 'skeleton-container' }, h("div", { key: '24f68cdc75130deddb5262a7c31bc0efee18f2a8', class: 'skeleton-typing' }, h("div", { key: 'f1d5eaf22fb6b6b2b481bd438afc8dfddaa6a61e', class: 'skeleton-dot' }), h("div", { key: 'f65f54b658580f831b230478256c54bb908af1a7', class: 'skeleton-dot' })))));
     }
     static get style() { return chatSkeletonCss; }
 }, [257, "chat-skeleton"]);
@@ -29,6 +29,6 @@ function defineCustomElement() {
 defineCustomElement();
 
 export { ChatSkeleton as C, defineCustomElement as d };
-//# sourceMappingURL=p-CpIZaQIl.js.map
+//# sourceMappingURL=p-CdAaTymN.js.map
 
-//# sourceMappingURL=p-CpIZaQIl.js.map
+//# sourceMappingURL=p-CdAaTymN.js.map
