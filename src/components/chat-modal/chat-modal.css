@@ -546,3 +546,51 @@ button:disabled {
     transform: translateX(100%);
   }
 }
+
+/* --- Contexte (feuille de l'arbre de décision) --- */
+
+.context-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: rgba(255, 136, 52, 0.08);
+  border-bottom: 1px solid rgba(255, 136, 52, 0.25);
+  font-size: 0.85em;
+}
+
+.context-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: #8a4416;
+}
+
+.context-change {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  color: #6b6b6b;
+  font-size: 0.95em;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.context-change:hover {
+  color: var(--main-color);
+}
+
+.scope-notice {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: #f4f6f8;
+  border-left: 3px solid var(--main-color);
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: #4a4a4a;
+}
+

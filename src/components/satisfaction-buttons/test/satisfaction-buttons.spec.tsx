@@ -5,14 +5,10 @@ describe('satisfaction-buttons', () => {
   it('renders', async () => {
     const page = await newSpecPage({
       components: [SatisfactionButtons],
-      html: `<satisfaction-buttons></satisfaction-buttons>`,
+      html: `<satisfaction-buttons message-id="msg_1"></satisfaction-buttons>`,
     });
-    expect(page.root).toEqualHtml(`
-      <satisfaction-buttons>
-        <mock:shadow-root>
-          <slot></slot>
-        </mock:shadow-root>
-      </satisfaction-buttons>
-    `);
+    expect(page.root.shadowRoot.querySelector('.satisfaction-container')).toBeTruthy();
+    expect(page.root.shadowRoot.querySelector('.thumbs-up')).toBeTruthy();
+    expect(page.root.shadowRoot.querySelector('.thumbs-down')).toBeTruthy();
   });
 });

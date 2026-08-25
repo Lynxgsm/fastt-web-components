@@ -1,3 +1,57 @@
+export type ScopeEvent = {
+  scope: 'leaf' | 'global' | 'fallback_global';
+  node_id: number | null;
+  path: string[];
+  notice_key: string | null;
+};
+
+export type DecisionNode = {
+  id: number;
+  slug: string;
+  label: string;
+  description: string | null;
+  intro_message: string | null;
+  is_leaf: boolean;
+  children: DecisionNode[];
+};
+
+type ParseCallbacks = {
+  onChunk: (chunk: string) => void;
+  onComplete?: (messageId?: string) => void;
+  onScope?: (scope: ScopeEvent) => void;
+};
+
+/**
+ * Traite une ligne `data: {json}` du flux.
+ * Renvoie true quand le flux est terminé et que l'appelant doit s'arrêter.
+ */
+function handleStreamLine(line: string, cb: ParseCallbacks): boolean {
+  if (!line.startsWith('data: ')) return false;
+  const data = line.slice(6);
+
+  if (data === '[DONE]') {
+    cb.onComplete?.();
+    return true;
+  }
+
+  try {
+    const parsed = JSON.parse(data);
+    if (parsed.type === 'scope') {
+      cb.onScope?.(parsed as ScopeEvent);
+    } else if (parsed.content) {
+      cb.onChunk(parsed.content);
+    } else if (parsed.type === 'done') {
+      cb.onComplete?.(parsed.message_id);
+      return true;
+    }
+  } catch (e) {
+    if (data.trim()) {
+      cb.onChunk(data);
+    }
+  }
+  return false;
+}
+
 export async function callAIStream(
   message: string,
   apiEndpoint: string,
@@ -5,7 +59,10 @@ export async function callAIStream(
   onChunk: (chunk: string) => void,
   onComplete?: (messageId?: string) => void,
   onError?: (error: Error) => void,
+  contextNodeId: number | null = null,
+  onScope?: (scope: ScopeEvent) => void,
 ): Promise<void> {
+  const cb: ParseCallbacks = { onChunk, onComplete, onScope };
   try {
     const response = await fetch(`${apiEndpoint}/conversation/stream`, {
       method: 'POST',
@@ -17,6 +74,7 @@ export async function callAIStream(
       body: JSON.stringify({
         prompt: message,
         conversation_id: conversationId,
+        context_node_id: contextNodeId,
       }),
     });
 
@@ -37,64 +95,33 @@ export async function callAIStream(
 
       if (done) {
         partial += decoder.decode();
-
-        const lines = partial.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              onComplete?.();
-              return;
-            }
-            try {
-              const parsed = JSON.parse(data);
-              if (parsed.content) {
-                onChunk(parsed.content);
-              } else if (parsed.type === 'done') {
-                onComplete?.(parsed.message_id);
-                return;
-              }
-            } catch (e) {
-              if (data.trim()) {
-                onChunk(data);
-              }
-            }
-          }
+        for (const line of partial.split('\n')) {
+          if (handleStreamLine(line, cb)) return;
         }
         onComplete?.();
         break;
       }
 
       partial += decoder.decode(value, { stream: true });
-      let lines = partial.split('\n');
+      const lines = partial.split('\n');
       // Keep the last line in 'partial' in case it's incomplete
       partial = lines.pop() || '';
       for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') {
-            onComplete?.();
-            return;
-          }
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.content) {
-              onChunk(parsed.content);
-            } else if (parsed.type === 'done') {
-              onComplete?.(parsed.message_id);
-              return;
-            }
-          } catch (e) {
-            if (data.trim()) {
-              onChunk(data);
-            }
-          }
-        }
+        if (handleStreamLine(line, cb)) return;
       }
     }
   } catch (error) {
     onError?.(error as Error);
   }
+}
+
+export async function fetchDecisionTree(apiEndpoint: string): Promise<DecisionNode[]> {
+  const response = await fetch(`${apiEndpoint}/decision-tree/`);
+  if (!response.ok) {
+    throw new Error(`Impossible de charger l'arbre: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.nodes || [];
 }
 
 export async function handleFeedback(isSatisfied: number, apiEndpoint: string, conversationId: string, onComplete?: () => void, onError?: (error: Error) => void): Promise<void> {

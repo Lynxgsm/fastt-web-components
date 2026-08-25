@@ -7,12 +7,7 @@ describe('chat-skeleton', () => {
       components: [ChatSkeleton],
       html: `<chat-skeleton></chat-skeleton>`,
     });
-    expect(page.root).toEqualHtml(`
-      <chat-skeleton>
-        <mock:shadow-root>
-          <slot></slot>
-        </mock:shadow-root>
-      </chat-skeleton>
-    `);
+    expect(page.root.shadowRoot.querySelector('.skeleton-container')).toBeTruthy();
+    expect(page.root.shadowRoot.querySelectorAll('.skeleton-dot').length).toBeGreaterThan(0);
   });
 });

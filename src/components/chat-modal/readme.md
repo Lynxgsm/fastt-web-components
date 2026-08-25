@@ -19,12 +19,14 @@
 
 ### Depends on
 
+- [decision-tree-nav](../decision-tree-nav)
 - [chat-skeleton](../chat-skeleton)
 - [satisfaction-buttons](../satisfaction-buttons)
 
 ### Graph
 ```mermaid
 graph TD;
+  chat-modal --> decision-tree-nav
   chat-modal --> chat-skeleton
   chat-modal --> satisfaction-buttons
   style chat-modal fill:#f9f,stroke:#333,stroke-width:4px
