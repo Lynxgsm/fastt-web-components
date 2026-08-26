@@ -8,7 +8,7 @@ import { satisfactionStateService } from '../../utils/satisfaction-state';
   shadow: true,
 })
 export class SatisfactionButtons {
-  @Prop() apiEndpoint: string = (Env.API_URL = 'https://fastt.celaneo.com');
+  @Prop() apiEndpoint: string = Env.API_URL;
   @Prop() messageId: string = '';
   @State() selectedButton: 'up' | 'down' | null = null;
 

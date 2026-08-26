@@ -5,30 +5,34 @@
 <!-- Auto Generated Below -->
 
 
+## Overview
+
+Panneau de chat intégré dans la page.
+
+Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+et leurs divergences étaient des bogues, pas des fonctionnalités.
+
 ## Properties
 
-| Property      | Attribute      | Description | Type                                                          | Default                           |
-| ------------- | -------------- | ----------- | ------------------------------------------------------------- | --------------------------------- |
-| `apiEndpoint` | `api-endpoint` |             | `string`                                                      | `Env.API_URL`                     |
-| `iconSize`    | `icon-size`    |             | `number`                                                      | `16`                              |
-| `modalTitle`  | `modal-title`  |             | `string`                                                      | `'Que puis-je faire pour vous ?'` |
-| `titleStyle`  | `title-style`  |             | `{ fontSize?: string; fontWeight?: string; color?: string; }` | `{}`                              |
+| Property      | Attribute      | Description | Type     | Default                           |
+| ------------- | -------------- | ----------- | -------- | --------------------------------- |
+| `apiEndpoint` | `api-endpoint` |             | `string` | `Env.API_URL`                     |
+| `modalTitle`  | `modal-title`  |             | `string` | `'Que puis-je faire pour vous ?'` |
 
 
 ## Dependencies
 
 ### Depends on
 
-- [decision-tree-nav](../decision-tree-nav)
-- [chat-skeleton](../chat-skeleton)
-- [satisfaction-buttons](../satisfaction-buttons)
+- [chat-conversation](../chat-conversation)
 
 ### Graph
 ```mermaid
 graph TD;
-  chat-modal --> decision-tree-nav
-  chat-modal --> chat-skeleton
-  chat-modal --> satisfaction-buttons
+  chat-modal --> chat-conversation
+  chat-conversation --> chat-skeleton
   style chat-modal fill:#f9f,stroke:#333,stroke-width:4px
 ```
 

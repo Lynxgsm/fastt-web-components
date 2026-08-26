@@ -9,14 +9,12 @@
 
 ### Used by
 
- - [chat-modal](../chat-modal)
- - [chat-widget](../chat-widget)
+ - [chat-conversation](../chat-conversation)
 
 ### Graph
 ```mermaid
 graph TD;
-  chat-modal --> chat-skeleton
-  chat-widget --> chat-skeleton
+  chat-conversation --> chat-skeleton
   style chat-skeleton fill:#f9f,stroke:#333,stroke-width:4px
 ```
 

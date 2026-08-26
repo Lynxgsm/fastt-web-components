@@ -11,8 +11,17 @@ export type DecisionNode = {
   label: string;
   description: string | null;
   intro_message: string | null;
+  /** Réponse pré-enregistrée. Renseignée sur les questions (niveau 3). */
+  answer: string | null;
   is_leaf: boolean;
   children: DecisionNode[];
+};
+
+export type PresetAnswer = {
+  answer: string;
+  path: string[];
+  /** Identifiant serveur du message, requis par le vote Oui / Non. */
+  message_id: number | null;
 };
 
 type ParseCallbacks = {
@@ -168,4 +177,27 @@ export async function handleMessageFeedback(isSatisfied: number, apiEndpoint: st
   } catch (error) {
     onError?.(error as Error);
   }
+}
+
+/**
+ * Réponse pré-enregistrée d'une question de l'arbre.
+ *
+ * Renvoie null sur 404 : la question n'a pas encore de réponse rédigée, et
+ * l'appelant doit basculer sur la saisie libre plutôt que rester bloqué.
+ */
+export async function fetchPresetAnswer(
+  apiEndpoint: string,
+  nodeId: number,
+  conversationId: string,
+): Promise<PresetAnswer | null> {
+  const response = await fetch(`${apiEndpoint}/conversation/answer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ node_id: nodeId, conversation_id: conversationId }),
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Réponse indisponible: ${response.status}`);
+  }
+  return response.json();
 }

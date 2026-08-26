@@ -1,16 +1,9 @@
-# chat-widget
+# chat-conversation
 
 
 
 <!-- Auto Generated Below -->
 
-
-## Overview
-
-Bulle flottante et son panneau.
-
-Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
-avec `chat-modal`.
 
 ## Properties
 
@@ -21,16 +14,22 @@ avec `chat-modal`.
 
 ## Dependencies
 
+### Used by
+
+ - [chat-modal](../chat-modal)
+ - [chat-widget](../chat-widget)
+
 ### Depends on
 
-- [chat-conversation](../chat-conversation)
+- [chat-skeleton](../chat-skeleton)
 
 ### Graph
 ```mermaid
 graph TD;
-  chat-widget --> chat-conversation
   chat-conversation --> chat-skeleton
-  style chat-widget fill:#f9f,stroke:#333,stroke-width:4px
+  chat-modal --> chat-conversation
+  chat-widget --> chat-conversation
+  style chat-conversation fill:#f9f,stroke:#333,stroke-width:4px
 ```
 
 ----------------------------------------------
