@@ -19,8 +19,9 @@
 .chat-container {
   width: 100%;
   height: 100%;
-  /* La hauteur vient normalement de la page hôte ; ce garde-fou évite la fuite
-     quand elle ne borne pas sa boîte — ce que fait le banc de dev. */
+  /* Seule la hauteur est bornée. La position et la largeur restent celles que
+     donne la page hôte : ce garde-fou ne déplace rien, il empêche seulement le
+     panneau de dépasser la fenêtre quand la boîte hôte n'est pas bornée. */
   max-height: var(--chat-max-height, 85vh);
   background: white;
   border-radius: 12px;

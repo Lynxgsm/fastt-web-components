@@ -9,11 +9,7 @@
     <script nomodule src="/build/fastt-web-components.js"></script>
   </head>
   <body>
-    <!-- `height: 100%` seul ne borne rien si les ancêtres ne sont pas bornés :
-         le banc de dev donne donc une vraie hauteur, comme le fera la page hôte. -->
-    <div style="width: 420px; height: 620px; margin: 24px;">
-      <chat-modal></chat-modal>
-    </div>
+    <div style="width: 100%; height: 100%;"><chat-modal></chat-modal></div>
     <chat-widget></chat-widget>
     <!-- <satisfaction-buttons conversation-id="123"></satisfaction-buttons> -->
   </body>
