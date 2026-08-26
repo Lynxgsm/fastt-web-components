@@ -1,6 +1,6 @@
 import { p as proxyCustomElement, H, E as Env, h, a as Host } from './index.js';
 import { l as loadFonts } from './p-YkBWLiCr.js';
-import { d as defineCustomElement$3 } from './p-DzPlibQP.js';
+import { d as defineCustomElement$3 } from './p-CsNnI9xs.js';
 import { d as defineCustomElement$2 } from './p-B5EiGtoA.js';
 
 const chatModalCss = ":host{--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;display:block;height:100%}.chat-container{width:100%;height:100%;background:white;border-radius:12px;display:flex;flex-direction:column;gap:12px;padding-bottom:16px;border:1px solid #eee;box-sizing:border-box;overflow:hidden}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}chat-conversation{flex:1;min-height:0;padding:0 16px}";

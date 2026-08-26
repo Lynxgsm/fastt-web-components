@@ -2903,8 +2903,9 @@ const ChatConversation = class {
     treeError = '';
     conversationId = '';
     nextId = 1;
-    /** Question courante : périmètre documentaire de la saisie libre. */
-    questionNodeId = null;
+    /** Nœud courant : périmètre documentaire de la saisie libre. Une question
+     *  résout les documents de son thème, un thème les siens. */
+    scopeNodeId = null;
     /** Message serveur soumis au vote en cours. */
     ratingMessageId = null;
     scroller;
@@ -2956,14 +2957,20 @@ const ChatConversation = class {
     }
     pick = async (node) => {
         this.say('user', node.label);
-        if (node.children.length > 0) {
-            this.path = [...this.path, node];
+        this.path = [...this.path, node];
+        if (node.kind === 'question') {
+            this.scopeNodeId = node.id;
+            await this.serveAnswer(node);
             return;
         }
-        // Pas d'enfant : c'est une question. On sert sa réponse rédigée.
-        this.path = [...this.path, node];
-        this.questionNodeId = node.id;
-        await this.serveAnswer(node);
+        // Un thème sans question serait une impasse : on ouvre la saisie sur son
+        // périmètre documentaire plutôt que de laisser l'utilisateur bloqué.
+        if (node.children.length === 0) {
+            this.scopeNodeId = node.id;
+            this.say('bot', `Aucune question n’est encore enregistrée pour « ${node.label} ». Posez la vôtre : ` +
+                'je cherche dans la documentation FASTT rattachée à ce thème.');
+            this.step = 'typing';
+        }
     };
     async serveAnswer(node) {
         try {
@@ -2993,7 +3000,7 @@ const ChatConversation = class {
         if (helped) {
             this.say('bot', 'Ravi d’avoir pu vous aider. Sur quel autre sujet puis-je répondre ?');
             this.path = [];
-            this.questionNodeId = null;
+            this.scopeNodeId = null;
             this.step = 'choosing';
             return;
         }
@@ -3002,12 +3009,12 @@ const ChatConversation = class {
     };
     back = () => {
         this.path = this.path.slice(0, -1);
-        this.questionNodeId = null;
+        this.scopeNodeId = null;
         this.step = 'choosing';
     };
     restart = () => {
         this.path = [];
-        this.questionNodeId = null;
+        this.scopeNodeId = null;
         this.ratingMessageId = null;
         this.step = 'choosing';
     };
@@ -3036,7 +3043,7 @@ const ChatConversation = class {
                 streaming: false,
             });
             this.step = 'typing';
-        }, this.questionNodeId, (scope) => {
+        }, this.scopeNodeId, (scope) => {
             // Mention déterministe : le serveur sait avec certitude qu'il a élargi
             // la recherche. Demander au modèle de l'annoncer serait irrégulier.
             if (scope.notice_key === 'out_of_scope') {
@@ -3078,7 +3085,7 @@ const ChatConversation = class {
     }
     render() {
         const typing = this.step === 'typing';
-        return (h(Host, { key: 'a4e85687e055d7063500fd5e2facc2856a6064d4' }, h("div", { key: '7888518decfd6ff8052278f292ed2d22bd5fa753', class: "transcript", ref: el => (this.scroller = el), onScroll: this.onScroll }, this.turns.map(turn => (h("div", { key: turn.id, class: { turn: true, 'turn-user': turn.role === 'user', 'turn-bot': turn.role === 'bot' } }, turn.role === 'bot' ? (h(Fragment, null, turn.outOfScopePath?.length > 0 && (h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", turn.outOfScopePath.join(' › '), " \u00BB. J\u2019ai cherch\u00E9 dans l\u2019ensemble des informations FASTT.")), turn.streaming && turn.content === '' ? (h("chat-skeleton", null)) : (h("div", { class: "markdown", innerHTML: this.renderMarkdown(turn.content) })))) : (h("span", null, turn.content))))), this.renderAffordance()), h("form", { key: 'ff28dd0b0515a4e1a95bae319d78fe51541fc43e', class: "composer", onSubmit: this.submit }, h("input", { key: '83193ba5b2f6de2b9a233288cd6da88a7b0c678d', type: "text", name: "message", ref: el => (this.inputEl = el), disabled: !typing, placeholder: typing ? 'Posez votre question…' : 'Choisissez une option ci-dessus' }), h("button", { key: '3814977fb6e5657b9932a249b95fba4693dde6e2', type: "submit", disabled: !typing }, "Envoyer")), this.path.length > 0 && (h("button", { key: '568be3483650cd2d43e5173cbcae452c5f393721', type: "button", class: "link restart", onClick: this.restart }, "Changer de th\u00E8me"))));
+        return (h(Host, { key: '4c90725571b7e332bdc643c40cdbb9d781db95aa' }, h("div", { key: 'eeef1f59db981b3fe8397c7f5b8a92056aa9c7b9', class: "transcript", ref: el => (this.scroller = el), onScroll: this.onScroll }, this.turns.map(turn => (h("div", { key: turn.id, class: { turn: true, 'turn-user': turn.role === 'user', 'turn-bot': turn.role === 'bot' } }, turn.role === 'bot' ? (h(Fragment, null, turn.outOfScopePath?.length > 0 && (h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", turn.outOfScopePath.join(' › '), " \u00BB. J\u2019ai cherch\u00E9 dans l\u2019ensemble des informations FASTT.")), turn.streaming && turn.content === '' ? (h("chat-skeleton", null)) : (h("div", { class: "markdown", innerHTML: this.renderMarkdown(turn.content) })))) : (h("span", null, turn.content))))), this.renderAffordance()), h("form", { key: '6ef3bb4abb5224ba76dff8cf408571a5bcf59214', class: "composer", onSubmit: this.submit }, h("input", { key: 'a709a4c84afcab486d96c915c6ba2a9996bfb640', type: "text", name: "message", ref: el => (this.inputEl = el), disabled: !typing, placeholder: typing ? 'Posez votre question…' : 'Choisissez une option ci-dessus' }), h("button", { key: 'c0e6a19c0e92a4ee3f50ed2c1c2eda89f4d0aa94', type: "submit", disabled: !typing }, "Envoyer")), this.path.length > 0 && (h("button", { key: '68649ca8e7bf5ab26ab066508026fc3eb0a51170', type: "button", class: "link restart", onClick: this.restart }, "Changer de th\u00E8me"))));
     }
 };
 ChatConversation.style = chatConversationCss;

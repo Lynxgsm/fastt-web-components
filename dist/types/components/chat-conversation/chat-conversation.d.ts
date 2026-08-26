@@ -15,7 +15,7 @@ type Turn = {
 /**
  * `choosing` : boutons d'options, saisie bloquée.
  * `rating`   : « Cela vous a-t-il aidé ? », saisie bloquée.
- * `typing`   : saisie ouverte — uniquement après un « Non ».
+ * `typing`   : saisie ouverte — après un « Non », ou sur un thème sans question.
  * `streaming`: réponse du modèle en cours.
  */
 type Step = 'choosing' | 'rating' | 'typing' | 'streaming';
@@ -28,8 +28,9 @@ export declare class ChatConversation {
     treeError: string;
     private conversationId;
     private nextId;
-    /** Question courante : périmètre documentaire de la saisie libre. */
-    private questionNodeId;
+    /** Nœud courant : périmètre documentaire de la saisie libre. Une question
+     *  résout les documents de son thème, un thème les siens. */
+    private scopeNodeId;
     /** Message serveur soumis au vote en cours. */
     private ratingMessageId;
     private scroller?;

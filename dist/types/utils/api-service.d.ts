@@ -10,9 +10,13 @@ export type DecisionNode = {
     label: string;
     description: string | null;
     intro_message: string | null;
-    /** Réponse pré-enregistrée. Renseignée sur les questions (niveau 3). */
+    /**
+     * 'topic'    : un service (niveau 1) ou un sujet (niveau 2) — on descend dedans.
+     * 'question' : une question à réponse rédigée — on sert sa réponse.
+     */
+    kind: 'topic' | 'question';
+    /** Réponse pré-enregistrée. Renseignée sur les questions. */
     answer: string | null;
-    is_leaf: boolean;
     children: DecisionNode[];
 };
 export type PresetAnswer = {
