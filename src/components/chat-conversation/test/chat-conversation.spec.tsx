@@ -8,7 +8,19 @@ const QUESTION = {
   description: null,
   intro_message: null,
   answer: 'Les intérimaires bénéficient d’un régime obligatoire.',
-  is_leaf: true,
+  kind: 'question' as const,
+  children: [],
+};
+
+/** Un thème sans question : le cas qui piégeait l'utilisateur avant `kind`. */
+const EMPTY_TOPIC = {
+  id: 7,
+  slug: 'sante-prevoyance',
+  label: 'Prévoyance et arrêt de travail',
+  description: null,
+  intro_message: null,
+  answer: null,
+  kind: 'topic' as const,
   children: [],
 };
 
@@ -19,8 +31,8 @@ const SUBJECT = {
   description: 'Mutuelle, prévoyance',
   intro_message: null,
   answer: null,
-  is_leaf: false,
-  children: [QUESTION],
+  kind: 'topic' as const,
+  children: [QUESTION, EMPTY_TOPIC],
 };
 
 /** Réponses successives données à fetch, dans l'ordre des appels. */
@@ -169,6 +181,27 @@ describe('chat-conversation', () => {
     expect(input(page).disabled).toBe(false);
     const last = turns(page)[turns(page).length - 1];
     expect(last.textContent).toContain("pas encore de réponse");
+  });
+
+  // Avant `kind`, la nature d'un nœud était devinée par `children.length`, donc
+  // un thème sans question était traité comme une question : appel serveur, 404,
+  // et l'utilisateur atterrissait en saisie libre sans explication.
+  it('ouvre la saisie sur un thème sans question, sans appeler le serveur', async () => {
+    const page = await openTree();
+    options(page)[0].click();
+    await page.waitForChanges();
+
+    const callsBefore = ((global as any).fetch as jest.Mock).mock.calls.length;
+
+    // Le second choix est EMPTY_TOPIC : un thème, pas une question.
+    options(page)[1].click();
+    await page.waitForChanges();
+
+    expect(((global as any).fetch as jest.Mock).mock.calls.length).toBe(callsBefore);
+    expect(input(page).disabled).toBe(false);
+    const last = turns(page)[turns(page).length - 1];
+    expect(last.textContent).toContain('Aucune question');
+    expect(last.textContent).toContain('Prévoyance et arrêt de travail');
   });
 
   it('ouvre la saisie quand aucun arbre n’est configuré', async () => {

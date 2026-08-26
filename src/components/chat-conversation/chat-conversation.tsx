@@ -27,7 +27,7 @@ type Turn = {
 /**
  * `choosing` : boutons d'options, saisie bloquée.
  * `rating`   : « Cela vous a-t-il aidé ? », saisie bloquée.
- * `typing`   : saisie ouverte — uniquement après un « Non ».
+ * `typing`   : saisie ouverte — après un « Non », ou sur un thème sans question.
  * `streaming`: réponse du modèle en cours.
  */
 type Step = 'choosing' | 'rating' | 'typing' | 'streaming';
@@ -50,8 +50,9 @@ export class ChatConversation {
 
   private conversationId = '';
   private nextId = 1;
-  /** Question courante : périmètre documentaire de la saisie libre. */
-  private questionNodeId: number | null = null;
+  /** Nœud courant : périmètre documentaire de la saisie libre. Une question
+   *  résout les documents de son thème, un thème les siens. */
+  private scopeNodeId: number | null = null;
   /** Message serveur soumis au vote en cours. */
   private ratingMessageId: number | null = null;
   private scroller?: HTMLDivElement;
@@ -108,16 +109,25 @@ export class ChatConversation {
 
   private pick = async (node: DecisionNode) => {
     this.say('user', node.label);
+    this.path = [...this.path, node];
 
-    if (node.children.length > 0) {
-      this.path = [...this.path, node];
+    if (node.kind === 'question') {
+      this.scopeNodeId = node.id;
+      await this.serveAnswer(node);
       return;
     }
 
-    // Pas d'enfant : c'est une question. On sert sa réponse rédigée.
-    this.path = [...this.path, node];
-    this.questionNodeId = node.id;
-    await this.serveAnswer(node);
+    // Un thème sans question serait une impasse : on ouvre la saisie sur son
+    // périmètre documentaire plutôt que de laisser l'utilisateur bloqué.
+    if (node.children.length === 0) {
+      this.scopeNodeId = node.id;
+      this.say(
+        'bot',
+        `Aucune question n’est encore enregistrée pour « ${node.label} ». Posez la vôtre : ` +
+          'je cherche dans la documentation FASTT rattachée à ce thème.',
+      );
+      this.step = 'typing';
+    }
   };
 
   private async serveAnswer(node: DecisionNode) {
@@ -149,7 +159,7 @@ export class ChatConversation {
     if (helped) {
       this.say('bot', 'Ravi d’avoir pu vous aider. Sur quel autre sujet puis-je répondre ?');
       this.path = [];
-      this.questionNodeId = null;
+      this.scopeNodeId = null;
       this.step = 'choosing';
       return;
     }
@@ -160,13 +170,13 @@ export class ChatConversation {
 
   private back = () => {
     this.path = this.path.slice(0, -1);
-    this.questionNodeId = null;
+    this.scopeNodeId = null;
     this.step = 'choosing';
   };
 
   private restart = () => {
     this.path = [];
-    this.questionNodeId = null;
+    this.scopeNodeId = null;
     this.ratingMessageId = null;
     this.step = 'choosing';
   };
@@ -203,7 +213,7 @@ export class ChatConversation {
         });
         this.step = 'typing';
       },
-      this.questionNodeId,
+      this.scopeNodeId,
       (scope: ScopeEvent) => {
         // Mention déterministe : le serveur sait avec certitude qu'il a élargi
         // la recherche. Demander au modèle de l'annoncer serait irrégulier.
