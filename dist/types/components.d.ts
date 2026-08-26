@@ -5,56 +5,46 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "./stencil-public-runtime";
-import { TitleStyle } from "./components/chat-modal/types";
-import { DecisionNode } from "./utils/api-service";
-export { TitleStyle } from "./components/chat-modal/types";
-export { DecisionNode } from "./utils/api-service";
 export namespace Components {
-    interface ChatModal {
-        /**
-          * @default Env.API_URL
-         */
-        "apiEndpoint": string;
-        /**
-          * @default 16
-         */
-        "iconSize": number;
-        /**
-          * @default 'Que puis-je faire pour vous ?'
-         */
-        "modalTitle": string;
-        /**
-          * @default {}
-         */
-        "titleStyle": Partial<TitleStyle>;
-    }
-    interface ChatSkeleton {
-    }
-    interface ChatWidget {
+    interface ChatConversation {
         /**
           * @default Env.API_URL
          */
         "apiEndpoint": string;
     }
     /**
-     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
-     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
-     * regroupement par thème.
+     * Panneau de chat intégré dans la page.
+     * Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+     * pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+     * avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+     * et leurs divergences étaient des bogues, pas des fonctionnalités.
      */
-    interface DecisionTreeNav {
+    interface ChatModal {
         /**
-          * Permet de sauter l'arbre et d'interroger l'ensemble du corpus FASTT.
-          * @default true
+          * @default Env.API_URL
          */
-        "allowSkip": boolean;
+        "apiEndpoint": string;
         /**
-          * @default ''
+          * @default 'Que puis-je faire pour vous ?'
+         */
+        "modalTitle": string;
+    }
+    interface ChatSkeleton {
+    }
+    /**
+     * Bulle flottante et son panneau.
+     * Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
+     * avec `chat-modal`.
+     */
+    interface ChatWidget {
+        /**
+          * @default Env.API_URL
          */
         "apiEndpoint": string;
     }
     interface SatisfactionButtons {
         /**
-          * @default (Env.API_URL = 'https://fastt.celaneo.com')
+          * @default Env.API_URL
          */
         "apiEndpoint": string;
         /**
@@ -63,11 +53,20 @@ export namespace Components {
         "messageId": string;
     }
 }
-export interface DecisionTreeNavCustomEvent<T> extends CustomEvent<T> {
-    detail: T;
-    target: HTMLDecisionTreeNavElement;
-}
 declare global {
+    interface HTMLChatConversationElement extends Components.ChatConversation, HTMLStencilElement {
+    }
+    var HTMLChatConversationElement: {
+        prototype: HTMLChatConversationElement;
+        new (): HTMLChatConversationElement;
+    };
+    /**
+     * Panneau de chat intégré dans la page.
+     * Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+     * pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+     * avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+     * et leurs divergences étaient des bogues, pas des fonctionnalités.
+     */
     interface HTMLChatModalElement extends Components.ChatModal, HTMLStencilElement {
     }
     var HTMLChatModalElement: {
@@ -80,34 +79,16 @@ declare global {
         prototype: HTMLChatSkeletonElement;
         new (): HTMLChatSkeletonElement;
     };
+    /**
+     * Bulle flottante et son panneau.
+     * Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
+     * avec `chat-modal`.
+     */
     interface HTMLChatWidgetElement extends Components.ChatWidget, HTMLStencilElement {
     }
     var HTMLChatWidgetElement: {
         prototype: HTMLChatWidgetElement;
         new (): HTMLChatWidgetElement;
-    };
-    interface HTMLDecisionTreeNavElementEventMap {
-        "leafSelected": { node: DecisionNode; path: DecisionNode[] };
-        "skipRequested": void;
-    }
-    /**
-     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
-     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
-     * regroupement par thème.
-     */
-    interface HTMLDecisionTreeNavElement extends Components.DecisionTreeNav, HTMLStencilElement {
-        addEventListener<K extends keyof HTMLDecisionTreeNavElementEventMap>(type: K, listener: (this: HTMLDecisionTreeNavElement, ev: DecisionTreeNavCustomEvent<HTMLDecisionTreeNavElementEventMap[K]>) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-        addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLDecisionTreeNavElementEventMap>(type: K, listener: (this: HTMLDecisionTreeNavElement, ev: DecisionTreeNavCustomEvent<HTMLDecisionTreeNavElementEventMap[K]>) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof DocumentEventMap>(type: K, listener: (this: Document, ev: DocumentEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | EventListenerOptions): void;
-        removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
-    }
-    var HTMLDecisionTreeNavElement: {
-        prototype: HTMLDecisionTreeNavElement;
-        new (): HTMLDecisionTreeNavElement;
     };
     interface HTMLSatisfactionButtonsElement extends Components.SatisfactionButtons, HTMLStencilElement {
     }
@@ -116,67 +97,53 @@ declare global {
         new (): HTMLSatisfactionButtonsElement;
     };
     interface HTMLElementTagNameMap {
+        "chat-conversation": HTMLChatConversationElement;
         "chat-modal": HTMLChatModalElement;
         "chat-skeleton": HTMLChatSkeletonElement;
         "chat-widget": HTMLChatWidgetElement;
-        "decision-tree-nav": HTMLDecisionTreeNavElement;
         "satisfaction-buttons": HTMLSatisfactionButtonsElement;
     }
 }
 declare namespace LocalJSX {
-    interface ChatModal {
-        /**
-          * @default Env.API_URL
-         */
-        "apiEndpoint"?: string;
-        /**
-          * @default 16
-         */
-        "iconSize"?: number;
-        /**
-          * @default 'Que puis-je faire pour vous ?'
-         */
-        "modalTitle"?: string;
-        /**
-          * @default {}
-         */
-        "titleStyle"?: Partial<TitleStyle>;
-    }
-    interface ChatSkeleton {
-    }
-    interface ChatWidget {
+    interface ChatConversation {
         /**
           * @default Env.API_URL
          */
         "apiEndpoint"?: string;
     }
     /**
-     * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
-     * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
-     * regroupement par thème.
+     * Panneau de chat intégré dans la page.
+     * Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+     * pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+     * avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+     * et leurs divergences étaient des bogues, pas des fonctionnalités.
      */
-    interface DecisionTreeNav {
+    interface ChatModal {
         /**
-          * Permet de sauter l'arbre et d'interroger l'ensemble du corpus FASTT.
-          * @default true
-         */
-        "allowSkip"?: boolean;
-        /**
-          * @default ''
+          * @default Env.API_URL
          */
         "apiEndpoint"?: string;
         /**
-          * Émis quand une feuille est atteinte : le chat peut s'ouvrir.
+          * @default 'Que puis-je faire pour vous ?'
          */
-        "onLeafSelected"?: (event: DecisionTreeNavCustomEvent<{ node: DecisionNode; path: DecisionNode[] }>) => void;
+        "modalTitle"?: string;
+    }
+    interface ChatSkeleton {
+    }
+    /**
+     * Bulle flottante et son panneau.
+     * Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
+     * avec `chat-modal`.
+     */
+    interface ChatWidget {
         /**
-          * Émis quand l'utilisateur choisit de poser directement sa question.
+          * @default Env.API_URL
          */
-        "onSkipRequested"?: (event: DecisionTreeNavCustomEvent<void>) => void;
+        "apiEndpoint"?: string;
     }
     interface SatisfactionButtons {
         /**
-          * @default (Env.API_URL = 'https://fastt.celaneo.com')
+          * @default Env.API_URL
          */
         "apiEndpoint"?: string;
         /**
@@ -185,10 +152,10 @@ declare namespace LocalJSX {
         "messageId"?: string;
     }
     interface IntrinsicElements {
+        "chat-conversation": ChatConversation;
         "chat-modal": ChatModal;
         "chat-skeleton": ChatSkeleton;
         "chat-widget": ChatWidget;
-        "decision-tree-nav": DecisionTreeNav;
         "satisfaction-buttons": SatisfactionButtons;
     }
 }
@@ -196,15 +163,22 @@ export { LocalJSX as JSX };
 declare module "@stencil/core" {
     export namespace JSX {
         interface IntrinsicElements {
+            "chat-conversation": LocalJSX.ChatConversation & JSXBase.HTMLAttributes<HTMLChatConversationElement>;
+            /**
+             * Panneau de chat intégré dans la page.
+             * Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+             * pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+             * avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+             * et leurs divergences étaient des bogues, pas des fonctionnalités.
+             */
             "chat-modal": LocalJSX.ChatModal & JSXBase.HTMLAttributes<HTMLChatModalElement>;
             "chat-skeleton": LocalJSX.ChatSkeleton & JSXBase.HTMLAttributes<HTMLChatSkeletonElement>;
-            "chat-widget": LocalJSX.ChatWidget & JSXBase.HTMLAttributes<HTMLChatWidgetElement>;
             /**
-             * Navigation guidée : l'utilisateur descend l'arbre de décision jusqu'à une
-             * feuille avant de pouvoir poser sa question. Le niveau 1 fournit le
-             * regroupement par thème.
+             * Bulle flottante et son panneau.
+             * Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
+             * avec `chat-modal`.
              */
-            "decision-tree-nav": LocalJSX.DecisionTreeNav & JSXBase.HTMLAttributes<HTMLDecisionTreeNavElement>;
+            "chat-widget": LocalJSX.ChatWidget & JSXBase.HTMLAttributes<HTMLChatWidgetElement>;
             "satisfaction-buttons": LocalJSX.SatisfactionButtons & JSXBase.HTMLAttributes<HTMLSatisfactionButtonsElement>;
         }
     }

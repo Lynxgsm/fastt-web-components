@@ -1,9 +1,9 @@
 {
   "entries": [
+    "components/chat-conversation/chat-conversation.js",
     "components/chat-modal/chat-modal.js",
     "components/chat-skeleton/chat-skeleton.js",
     "components/chat-widget/chat-widget.js",
-    "components/decision-tree-nav/decision-tree-nav.js",
     "components/satisfaction-buttons/satisfaction-buttons.js"
   ],
   "compiler": {

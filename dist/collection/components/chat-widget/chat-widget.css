@@ -1,3 +1,6 @@
+/* Chrome de la bulle flottante seulement. Le fil de conversation est stylé
+   dans chat-conversation.css : le shadow DOM l'isole de cette feuille. */
+
 :host {
   max-width: 600px;
   margin: 0 auto;
@@ -19,6 +22,7 @@
   flex-direction: column;
   overflow: hidden;
 }
+
 .chat-header {
   display: flex;
   align-items: center;
@@ -29,11 +33,13 @@
   color: white;
   font-family: 'Signika', Arial, sans-serif;
 }
+
 .chat-title {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
 }
+
 .close-button {
   background: none;
   border: none;
@@ -41,74 +47,7 @@
   font-size: 1.5rem;
   cursor: pointer;
 }
-.message-container {
-  flex: 1;
-  padding: 16px;
-  overflow-y: scroll;
-  background: #f7fafc;
-  min-height: 250px;
-  max-height: 250px;
-}
 
-.message {
-  margin: 12px 0;
-  padding: 12px 16px;
-  border-radius: 12px;
-  max-width: 80%;
-  word-wrap: break-word;
-  line-height: 1.4;
-}
-
-.user-message {
-  background: linear-gradient(135deg, var(--main-color), #ff8834);
-  color: white;
-  margin-left: auto;
-  width: fit-content;
-  border-radius: 20px 20px 0px 20px;
-}
-
-.ai-message {
-  background: hsla(240, 6%, 90%, 0.5);
-  color: #333;
-  margin-right: auto;
-  width: fit-content;
-  border-radius: 20px 20px 20px 0px;
-}
-.typing-indicator {
-  min-height: 24px;
-  padding: 0 16px;
-  color: #888;
-  font-size: 0.9rem;
-}
-.input-container {
-  display: flex;
-  border-top: 1px solid #eee;
-  padding: 8px;
-  background: #fff;
-}
-.input {
-  flex: 1;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 1rem;
-  margin-right: 8px;
-  font-family: 'Yantramanav', serif, Arial, sans-serif;
-}
-.send-button {
-  background: var(--main-color);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 0 16px;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.send-icon {
-  width: 20px;
-  height: 20px;
-  vertical-align: middle;
-}
 .chat-toggler {
   position: fixed;
   bottom: 24px;
@@ -127,6 +66,7 @@
   cursor: pointer;
   z-index: 999;
 }
+
 .hide {
   display: none;
   opacity: 0;
@@ -134,68 +74,8 @@
   transform: translateY(50%);
 }
 
-/* Style for markdown content */
-.markdown-content {
-  line-height: 1.5;
-}
-
-.markdown-content a {
-  color: var(--main-color);
-  text-decoration: underline;
-}
-
-.markdown-content p {
-  margin: 0 0 8px 0;
-}
-
-.markdown-content p:last-child {
-  margin-bottom: 0;
-}
-
-/* --- Contexte (feuille de l'arbre de décision) --- */
-
-.context-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  background: rgba(255, 136, 52, 0.08);
-  border-bottom: 1px solid rgba(255, 136, 52, 0.25);
-  font-size: 0.85em;
-}
-
-.context-label {
+chat-conversation {
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
-  color: #8a4416;
+  min-height: 0;
+  padding: 0 12px 12px;
 }
-
-.context-change {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 2px 4px;
-  color: #6b6b6b;
-  font-size: 0.95em;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.context-change:hover {
-  color: var(--main-color);
-}
-
-.scope-notice {
-  margin-bottom: 8px;
-  padding: 8px 10px;
-  background: #f4f6f8;
-  border-left: 3px solid var(--main-color);
-  border-radius: 4px;
-  font-size: 0.85em;
-  color: #4a4a4a;
-}
-

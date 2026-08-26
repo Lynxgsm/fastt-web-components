@@ -1,34 +1,14 @@
-import { TitleStyle } from './types';
-type ChatMessage = {
-    role: string;
-    content: string;
-    isComplete?: boolean;
-    messageId?: string;
-    /** Renseigné quand le serveur a élargi la recherche hors du thème choisi. */
-    outOfScopePath?: string[];
-};
+/**
+ * Panneau de chat intégré dans la page.
+ *
+ * Ne porte que son chrome : tout le parcours (arbre guidé, réponses
+ * pré-enregistrées, vote, saisie libre) vit dans `chat-conversation`, partagé
+ * avec `chat-widget`. Les deux composants étaient auparavant dupliqués à 90 %,
+ * et leurs divergences étaient des bogues, pas des fonctionnalités.
+ */
 export declare class ChatModal {
     modalTitle: string;
-    titleStyle: Partial<TitleStyle>;
-    messages: ChatMessage[];
-    isLoading: boolean;
-    iconSize: number;
     apiEndpoint: string;
-    conversationId: string;
-    /** 'navigating' : arbre affiché, saisie bloquée. 'chatting' : saisie ouverte. */
-    mode: 'navigating' | 'chatting';
-    contextNodeId: number | null;
-    contextPath: string[];
     componentWillLoad(): void;
-    private loadFonts;
-    private handleLeafSelected;
-    /** Échappatoire : interroger tout le corpus FASTT sans passer par l'arbre. */
-    private handleSkip;
-    private changeTheme;
-    private handleChunk;
-    private handleSubmit;
-    private renderMarkdown;
-    private renderContextBanner;
     render(): any;
 }
-export {};

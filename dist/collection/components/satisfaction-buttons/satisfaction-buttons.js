@@ -2,7 +2,7 @@ import { Env, Host, h } from "@stencil/core";
 import { handleMessageFeedback } from "../../utils/api-service";
 import { satisfactionStateService } from "../../utils/satisfaction-state";
 export class SatisfactionButtons {
-    apiEndpoint = (Env.API_URL = 'https://fastt.celaneo.com');
+    apiEndpoint = Env.API_URL;
     messageId = '';
     selectedButton = null;
     unsubscribe = null;
@@ -33,7 +33,7 @@ export class SatisfactionButtons {
         });
     };
     render() {
-        return (h(Host, { key: '62d5c41f1e5ab668d2131b7a67a5e039cb8a026e' }, h("div", { key: 'c158319ed0c64790cbd854ee73e206630df9a6de', class: "satisfaction-container" }, h("div", { key: 'bb7b1448d90fd5199e1a52c21564caaa960ecf29', class: "satisfaction-buttons" }, h("button", { key: '7ebcfe00df09f4174ae6f4138e40f21c5a2deb95', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, h("svg", { key: '175478fc8b07a322ecb7ce864bd2ee7338257bc6', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, h("path", { key: '384679db8cd94757a0e787f1d3d54ba44f5baaf3', d: "M7 10v12" }), h("path", { key: '61d262baa34e1ce230fcadf5bf920376346dcfda', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), h("button", { key: '839bff869d70d17586a6c272490524d44d2efeed', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, h("svg", { key: 'e012fec418473aba3ba07ef873c0158a9e94fdc9', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, h("path", { key: '6f2a3635c6747de52a6bae2d11fc4eab5eef1008', d: "M17 14V2" }), h("path", { key: '7afa6822c604ffd4b7265fca37293016c161f8d5', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
+        return (h(Host, { key: 'f0c412a8e4574fa6a2298c683be92a939fdc1e06' }, h("div", { key: '4dea4464a43554437c9c4433e97a0905086d4f25', class: "satisfaction-container" }, h("div", { key: '6939feb8468444714c256c4ac876ece3c2c108cc', class: "satisfaction-buttons" }, h("button", { key: 'aae47fbe08fb71bd981a5b38fa3f8601e97e5e48', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, h("svg", { key: 'ece91181207617554c03e69eda7aea090f2b25a6', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, h("path", { key: 'ab248118a3afe134d269410e13933631a1ec05bd', d: "M7 10v12" }), h("path", { key: 'e8967c65ef1546e6019305a901be30f3786530e7', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), h("button", { key: 'aad28336f013c97151335331f041b942a751d392', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, h("svg", { key: '369051ed4e43905c94c0b767da1f19ca64a476d6', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, h("path", { key: 'f83c85d7e01cd4036098ecf87941798cfab7fa48', d: "M17 14V2" }), h("path", { key: '5a1706e695740ecc23dac1723667c2e63d6e50c0', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
     }
     static get is() { return "satisfaction-buttons"; }
     static get encapsulation() { return "shadow"; }
@@ -67,7 +67,7 @@ export class SatisfactionButtons {
                 "getter": false,
                 "setter": false,
                 "reflect": false,
-                "defaultValue": "(Env.API_URL = 'https://fastt.celaneo.com')"
+                "defaultValue": "Env.API_URL"
             },
             "messageId": {
                 "type": "string",

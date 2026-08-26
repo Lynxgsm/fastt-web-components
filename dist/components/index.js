@@ -450,38 +450,12 @@ createSupportsRuleRe(":host");
 createSupportsRuleRe(":host-context");
 var parsePropertyValue = (propValue, propType, isFormAssociated) => {
   if (propValue != null && !isComplexType(propValue)) {
-    if (propType & 4 /* Boolean */) {
-      {
-        return propValue === "false" ? false : propValue === "" || !!propValue;
-      }
-    }
-    if (propType & 2 /* Number */) {
-      return typeof propValue === "string" ? parseFloat(propValue) : typeof propValue === "number" ? propValue : NaN;
-    }
     if (propType & 1 /* String */) {
       return String(propValue);
     }
     return propValue;
   }
   return propValue;
-};
-var getElement = (ref) => {
-  return ref;
-};
-
-// src/runtime/event-emitter.ts
-var createEvent = (ref, name, flags) => {
-  const elm = getElement(ref);
-  return {
-    emit: (detail) => {
-      return emitEvent(elm, name, {
-        bubbles: true,
-        composed: true,
-        cancelable: true,
-        detail
-      });
-    }
-  };
 };
 var emitEvent = (elm, name, opts) => {
   const ev = plt.ce(name, opts);
@@ -1288,7 +1262,7 @@ function render(vnode, container) {
   renderVdom(ref, vnode);
 }
 
-export { Env as E, Fragment as F, H, Host as a, createEvent as c, getAssetPath, h, proxyCustomElement as p, render, setAssetPath, setNonce, setPlatformOptions };
+export { Env as E, Fragment as F, H, Host as a, getAssetPath, h, proxyCustomElement as p, render, setAssetPath, setNonce, setPlatformOptions };
 //# sourceMappingURL=index.js.map
 
 //# sourceMappingURL=index.js.map

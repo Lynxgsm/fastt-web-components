@@ -1,32 +1,13 @@
-type ChatMessage = {
-    role: string;
-    content: string;
-    isComplete?: boolean;
-    messageId?: string;
-    /** Renseigné quand le serveur a élargi la recherche hors du thème choisi. */
-    outOfScopePath?: string[];
-};
+/**
+ * Bulle flottante et son panneau.
+ *
+ * Ne porte que son chrome : le parcours vit dans `chat-conversation`, partagé
+ * avec `chat-modal`.
+ */
 export declare class ChatWidget {
-    messages: ChatMessage[];
-    isLoading: boolean;
-    isChatContainerVisible: boolean;
     apiEndpoint: string;
-    conversationId: string;
-    /** 'navigating' : arbre affiché, saisie bloquée. 'chatting' : saisie ouverte. */
-    mode: 'navigating' | 'chatting';
-    contextNodeId: number | null;
-    contextPath: string[];
-    private inputEl?;
+    isChatContainerVisible: boolean;
     componentWillLoad(): void;
-    private loadFonts;
-    private handleLeafSelected;
-    /** Échappatoire : interroger tout le corpus FASTT sans passer par l'arbre. */
-    private handleSkip;
-    private changeTheme;
-    private handleSubmit;
-    private toggleChatContainer;
-    private setInputRef;
-    private renderMarkdown;
+    private toggle;
     render(): any[];
 }
-export {};

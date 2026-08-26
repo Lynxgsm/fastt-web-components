@@ -130,4 +130,23 @@ export async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId,
         onError?.(error);
     }
 }
+/**
+ * Réponse pré-enregistrée d'une question de l'arbre.
+ *
+ * Renvoie null sur 404 : la question n'a pas encore de réponse rédigée, et
+ * l'appelant doit basculer sur la saisie libre plutôt que rester bloqué.
+ */
+export async function fetchPresetAnswer(apiEndpoint, nodeId, conversationId) {
+    const response = await fetch(`${apiEndpoint}/conversation/answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ node_id: nodeId, conversation_id: conversationId }),
+    });
+    if (response.status === 404)
+        return null;
+    if (!response.ok) {
+        throw new Error(`Réponse indisponible: ${response.status}`);
+    }
+    return response.json();
+}
 //# sourceMappingURL=api-service.js.map
