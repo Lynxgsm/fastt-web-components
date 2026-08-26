@@ -24,6 +24,18 @@ const EMPTY_TOPIC = {
   children: [],
 };
 
+/** Thème sans question mais avec message d'accueil : l'accueil sert d'invitation. */
+const TOPIC_WITH_INTRO = {
+  id: 8,
+  slug: 'sante-teleconsultation',
+  label: 'Téléconsultation médicale',
+  description: null,
+  intro_message: 'Comment est-ce que je peux vous aider pour ce sujet ?',
+  answer: null,
+  kind: 'topic' as const,
+  children: [],
+};
+
 const SUBJECT = {
   id: 5,
   slug: 'sante',
@@ -32,7 +44,7 @@ const SUBJECT = {
   intro_message: null,
   answer: null,
   kind: 'topic' as const,
-  children: [QUESTION, EMPTY_TOPIC],
+  children: [QUESTION, EMPTY_TOPIC, TOPIC_WITH_INTRO],
 };
 
 /** Réponses successives données à fetch, dans l'ordre des appels. */
@@ -166,9 +178,9 @@ describe('chat-conversation', () => {
     expect(options(page)[0].textContent).toContain('Santé et prévoyance');
   });
 
-  // Pendant la rédaction des réponses par FASTT, une question sans réponse ne
-  // doit pas être une impasse.
-  it('bascule sur la saisie quand la question n’a pas encore de réponse', async () => {
+  // Défensif : l'API élague les questions sans réponse, donc ce 404 ne devrait
+  // pas survenir. S'il survient, la saisie s'ouvre sans exposer l'état du contenu.
+  it('bascule sur la saisie si la réponse est introuvable', async () => {
     const page = await openTree();
     options(page)[0].click();
     await page.waitForChanges();
@@ -180,7 +192,8 @@ describe('chat-conversation', () => {
 
     expect(input(page).disabled).toBe(false);
     const last = turns(page)[turns(page).length - 1];
-    expect(last.textContent).toContain("pas encore de réponse");
+    expect(last.textContent).toContain('Reformulez votre question');
+    expect(last.textContent).not.toContain('enregistrée');
   });
 
   // Avant `kind`, la nature d'un nœud était devinée par `children.length`, donc
@@ -200,8 +213,28 @@ describe('chat-conversation', () => {
     expect(((global as any).fetch as jest.Mock).mock.calls.length).toBe(callsBefore);
     expect(input(page).disabled).toBe(false);
     const last = turns(page)[turns(page).length - 1];
-    expect(last.textContent).toContain('Aucune question');
+    // Formulation neutre : l'utilisateur n'a pas à savoir que le contenu manque.
+    expect(last.textContent).toContain('Posez votre question sur');
     expect(last.textContent).toContain('Prévoyance et arrêt de travail');
+    expect(last.textContent).not.toContain('Aucune question');
+  });
+
+  it('affiche le message d’accueil du thème et en fait l’invitation', async () => {
+    const page = await openTree();
+    options(page)[0].click();
+    await page.waitForChanges();
+
+    const callsBefore = ((global as any).fetch as jest.Mock).mock.calls.length;
+    options(page)[2].click(); // TOPIC_WITH_INTRO
+    await page.waitForChanges();
+
+    // Aucun appel serveur : un thème n'est pas une question.
+    expect(((global as any).fetch as jest.Mock).mock.calls.length).toBe(callsBefore);
+    const last = turns(page)[turns(page).length - 1];
+    expect(last.textContent).toContain('Comment est-ce que je peux vous aider');
+    // L'accueil tient lieu d'invitation : pas de second message générique.
+    expect(last.textContent).not.toContain('Posez votre question sur');
+    expect(input(page).disabled).toBe(false);
   });
 
   it('ouvre la saisie quand aucun arbre n’est configuré', async () => {

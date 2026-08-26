@@ -110,32 +110,38 @@ export class ChatConversation {
   private pick = async (node: DecisionNode) => {
     this.say('user', node.label);
     this.path = [...this.path, node];
+    this.scopeNodeId = node.id;
 
     if (node.kind === 'question') {
-      this.scopeNodeId = node.id;
       await this.serveAnswer(node);
       return;
     }
 
-    // Un thème sans question serait une impasse : on ouvre la saisie sur son
-    // périmètre documentaire plutôt que de laisser l'utilisateur bloqué.
-    if (node.children.length === 0) {
-      this.scopeNodeId = node.id;
-      this.say(
-        'bot',
-        `Aucune question n’est encore enregistrée pour « ${node.label} ». Posez la vôtre : ` +
-          'je cherche dans la documentation FASTT rattachée à ce thème.',
-      );
-      this.step = 'typing';
+    // Le message d'accueil du thème, quand l'administrateur en a saisi un.
+    const intro = (node.intro_message || '').trim();
+    if (intro) this.say('bot', intro);
+
+    if (node.children.length > 0) {
+      this.step = 'choosing';
+      return;
     }
+
+    // Thème sans question : on répond par la recherche, sur ses documents. Ne
+    // jamais évoquer une réponse « pas encore enregistrée » — l'état du contenu
+    // est l'affaire de l'administrateur, pas celle de l'utilisateur.
+    if (!intro) {
+      this.say('bot', `Posez votre question sur « ${node.label} ».`);
+    }
+    this.step = 'typing';
   };
 
   private async serveAnswer(node: DecisionNode) {
     try {
       const preset = await fetchPresetAnswer(this.apiEndpoint, node.id, this.conversationId);
       if (preset === null) {
-        // Réponse pas encore rédigée : ouvrir la saisie plutôt que bloquer.
-        this.say('bot', "Je n'ai pas encore de réponse enregistrée pour cette question. Posez-la avec vos mots, je cherche dans la documentation FASTT.");
+        // Défensif : l'API élague les questions sans réponse, ce cas ne devrait
+        // pas se produire. Le cas échéant, on répond par la recherche.
+        this.say('bot', 'Reformulez votre question et je cherche dans la documentation FASTT.');
         this.step = 'typing';
         return;
       }
@@ -264,7 +270,6 @@ export class ChatConversation {
     if (options.length === 0) {
       return (
         <p class="notice">
-          Aucune question n’est encore enregistrée pour ce thème.
           <button type="button" class="link" onClick={this.back}>← Retour</button>
         </p>
       );

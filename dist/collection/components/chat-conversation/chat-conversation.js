@@ -67,26 +67,34 @@ export class ChatConversation {
     pick = async (node) => {
         this.say('user', node.label);
         this.path = [...this.path, node];
+        this.scopeNodeId = node.id;
         if (node.kind === 'question') {
-            this.scopeNodeId = node.id;
             await this.serveAnswer(node);
             return;
         }
-        // Un thème sans question serait une impasse : on ouvre la saisie sur son
-        // périmètre documentaire plutôt que de laisser l'utilisateur bloqué.
-        if (node.children.length === 0) {
-            this.scopeNodeId = node.id;
-            this.say('bot', `Aucune question n’est encore enregistrée pour « ${node.label} ». Posez la vôtre : ` +
-                'je cherche dans la documentation FASTT rattachée à ce thème.');
-            this.step = 'typing';
+        // Le message d'accueil du thème, quand l'administrateur en a saisi un.
+        const intro = (node.intro_message || '').trim();
+        if (intro)
+            this.say('bot', intro);
+        if (node.children.length > 0) {
+            this.step = 'choosing';
+            return;
         }
+        // Thème sans question : on répond par la recherche, sur ses documents. Ne
+        // jamais évoquer une réponse « pas encore enregistrée » — l'état du contenu
+        // est l'affaire de l'administrateur, pas celle de l'utilisateur.
+        if (!intro) {
+            this.say('bot', `Posez votre question sur « ${node.label} ».`);
+        }
+        this.step = 'typing';
     };
     async serveAnswer(node) {
         try {
             const preset = await fetchPresetAnswer(this.apiEndpoint, node.id, this.conversationId);
             if (preset === null) {
-                // Réponse pas encore rédigée : ouvrir la saisie plutôt que bloquer.
-                this.say('bot', "Je n'ai pas encore de réponse enregistrée pour cette question. Posez-la avec vos mots, je cherche dans la documentation FASTT.");
+                // Défensif : l'API élague les questions sans réponse, ce cas ne devrait
+                // pas se produire. Le cas échéant, on répond par la recherche.
+                this.say('bot', 'Reformulez votre question et je cherche dans la documentation FASTT.');
                 this.step = 'typing';
                 return;
             }
@@ -188,13 +196,13 @@ export class ChatConversation {
         }
         const options = this.options;
         if (options.length === 0) {
-            return (h("p", { class: "notice" }, "Aucune question n\u2019est encore enregistr\u00E9e pour ce th\u00E8me.", h("button", { type: "button", class: "link", onClick: this.back }, "\u2190 Retour")));
+            return (h("p", { class: "notice" }, h("button", { type: "button", class: "link", onClick: this.back }, "\u2190 Retour")));
         }
         return (h("div", { class: "options" }, options.map(node => (h("button", { key: node.id, type: "button", class: "option", onClick: () => this.pick(node) }, h("span", { class: "option-label" }, node.label), node.description && h("span", { class: "option-description" }, node.description)))), this.path.length > 0 && (h("button", { type: "button", class: "link", onClick: this.back }, "\u2190 Retour"))));
     }
     render() {
         const typing = this.step === 'typing';
-        return (h(Host, { key: '4c90725571b7e332bdc643c40cdbb9d781db95aa' }, h("div", { key: 'eeef1f59db981b3fe8397c7f5b8a92056aa9c7b9', class: "transcript", ref: el => (this.scroller = el), onScroll: this.onScroll }, this.turns.map(turn => (h("div", { key: turn.id, class: { turn: true, 'turn-user': turn.role === 'user', 'turn-bot': turn.role === 'bot' } }, turn.role === 'bot' ? (h(Fragment, null, turn.outOfScopePath?.length > 0 && (h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", turn.outOfScopePath.join(' › '), " \u00BB. J\u2019ai cherch\u00E9 dans l\u2019ensemble des informations FASTT.")), turn.streaming && turn.content === '' ? (h("chat-skeleton", null)) : (h("div", { class: "markdown", innerHTML: this.renderMarkdown(turn.content) })))) : (h("span", null, turn.content))))), this.renderAffordance()), h("form", { key: '6ef3bb4abb5224ba76dff8cf408571a5bcf59214', class: "composer", onSubmit: this.submit }, h("input", { key: 'a709a4c84afcab486d96c915c6ba2a9996bfb640', type: "text", name: "message", ref: el => (this.inputEl = el), disabled: !typing, placeholder: typing ? 'Posez votre question…' : 'Choisissez une option ci-dessus' }), h("button", { key: 'c0e6a19c0e92a4ee3f50ed2c1c2eda89f4d0aa94', type: "submit", disabled: !typing }, "Envoyer")), this.path.length > 0 && (h("button", { key: '68649ca8e7bf5ab26ab066508026fc3eb0a51170', type: "button", class: "link restart", onClick: this.restart }, "Changer de th\u00E8me"))));
+        return (h(Host, { key: 'fc5b290dbbe8f3692d75f3e515796a8662043075' }, h("div", { key: '34e27231195994b47f135e3d3ddaa03872a5a08a', class: "transcript", ref: el => (this.scroller = el), onScroll: this.onScroll }, this.turns.map(turn => (h("div", { key: turn.id, class: { turn: true, 'turn-user': turn.role === 'user', 'turn-bot': turn.role === 'bot' } }, turn.role === 'bot' ? (h(Fragment, null, turn.outOfScopePath?.length > 0 && (h("div", { class: "scope-notice" }, "Cette question sort du th\u00E8me \u00AB ", turn.outOfScopePath.join(' › '), " \u00BB. J\u2019ai cherch\u00E9 dans l\u2019ensemble des informations FASTT.")), turn.streaming && turn.content === '' ? (h("chat-skeleton", null)) : (h("div", { class: "markdown", innerHTML: this.renderMarkdown(turn.content) })))) : (h("span", null, turn.content))))), this.renderAffordance()), h("form", { key: '9816d9b2ccce428f4c407963a41507102603f1b2', class: "composer", onSubmit: this.submit }, h("input", { key: '330cc4683e497bb098d476d6d23e4b373f364f43', type: "text", name: "message", ref: el => (this.inputEl = el), disabled: !typing, placeholder: typing ? 'Posez votre question…' : 'Choisissez une option ci-dessus' }), h("button", { key: 'd9ac4bbf2e0074f03a51c4c5ee2ba63dca3aa0e0', type: "submit", disabled: !typing }, "Envoyer")), this.path.length > 0 && (h("button", { key: 'c9f0711f4bc67b79ffa146c1428067619c6daf70', type: "button", class: "link restart", onClick: this.restart }, "Changer de th\u00E8me"))));
     }
     static get is() { return "chat-conversation"; }
     static get encapsulation() { return "shadow"; }

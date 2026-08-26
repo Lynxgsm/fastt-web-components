@@ -1,4 +1,4 @@
-import { C as ChatConversation$1, d as defineCustomElement$1 } from './p-CsNnI9xs.js';
+import { C as ChatConversation$1, d as defineCustomElement$1 } from './p-DtXrzHiD.js';
 
 const ChatConversation = ChatConversation$1;
 const defineCustomElement = defineCustomElement$1;
