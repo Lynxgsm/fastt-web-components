@@ -319,16 +319,23 @@ export class ChatConversation {
           {this.renderAffordance()}
         </div>
 
-        <form class="composer" onSubmit={this.submit}>
-          <input
-            type="text"
-            name="message"
-            ref={el => (this.inputEl = el)}
-            disabled={!typing}
-            placeholder={typing ? 'Posez votre question…' : 'Choisissez une option ci-dessus'}
-          />
-          <button type="submit" disabled={!typing}>Envoyer</button>
-        </form>
+        {/* La saisie n'est affichée que lorsqu'elle sert : un champ grisé
+            n'apporte rien et occupe de la hauteur dans un panneau étroit.
+            Maintenue pendant le flux pour que la mise en page ne saute pas. */}
+        {(typing || this.step === 'streaming') && (
+          <form class="composer" onSubmit={this.submit}>
+            <input
+              type="text"
+              name="message"
+              ref={el => (this.inputEl = el)}
+              disabled={!typing}
+              placeholder="Posez votre question…"
+            />
+            <button type="submit" disabled={!typing}>
+              Envoyer
+            </button>
+          </form>
+        )}
 
         {this.path.length > 0 && (
           <button type="button" class="link restart" onClick={this.restart}>

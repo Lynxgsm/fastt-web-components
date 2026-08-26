@@ -20,9 +20,10 @@
   width: 100%;
   height: 100%;
   /* Seule la hauteur est bornée. La position et la largeur restent celles que
-     donne la page hôte : ce garde-fou ne déplace rien, il empêche seulement le
-     panneau de dépasser la fenêtre quand la boîte hôte n'est pas bornée. */
-  max-height: var(--chat-max-height, 85vh);
+     donne la page hôte : ce garde-fou ne déplace rien.
+     Une borne en pixels *et* en vh : 70vh seul donnait un panneau presque aussi
+     haut que la fenêtre sur un grand écran. */
+  max-height: var(--chat-max-height, min(520px, 70vh));
   background: white;
   border-radius: 12px;
   display: flex;

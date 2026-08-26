@@ -1,7 +1,7 @@
 import { r as registerInstance, E as Env, h, a as Host } from './index-DeNA3EAZ.js';
 import { l as loadFonts } from './fonts-YkBWLiCr.js';
 
-const chatModalCss = ":host{--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;display:block;height:100%}.chat-container{width:100%;height:100%;max-height:var(--chat-max-height, 85vh);background:white;border-radius:12px;display:flex;flex-direction:column;gap:12px;padding-bottom:16px;border:1px solid #eee;box-sizing:border-box;overflow:hidden}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}chat-conversation{flex:1;min-height:0;padding:0 16px}";
+const chatModalCss = ":host{--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;display:block;height:100%}.chat-container{width:100%;height:100%;max-height:var(--chat-max-height, min(520px, 70vh));background:white;border-radius:12px;display:flex;flex-direction:column;gap:12px;padding-bottom:16px;border:1px solid #eee;box-sizing:border-box;overflow:hidden}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}chat-conversation{flex:1;min-height:0;padding:0 16px}";
 
 const ChatModal = class {
     constructor(hostRef) {

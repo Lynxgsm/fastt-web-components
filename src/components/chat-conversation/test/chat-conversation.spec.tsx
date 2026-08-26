@@ -75,8 +75,13 @@ const options = (page: any) =>
   Array.from(page.root.shadowRoot.querySelectorAll('.option')) as HTMLButtonElement[];
 const turns = (page: any) =>
   Array.from(page.root.shadowRoot.querySelectorAll('.turn')) as HTMLElement[];
-const input = (page: any) =>
-  page.root.shadowRoot.querySelector('input[name="message"]') as HTMLInputElement;
+/** La saisie n'est rendue que lorsqu'elle sert : son absence est le signal. */
+const composer = (page: any) =>
+  page.root.shadowRoot.querySelector('form.composer') as HTMLFormElement | null;
+const canType = (page: any) => {
+  const el = page.root.shadowRoot.querySelector('input[name="message"]') as HTMLInputElement | null;
+  return el !== null && !el.disabled;
+};
 
 describe('chat-conversation', () => {
   it('accueille et propose les sujets de premier niveau', async () => {
@@ -89,14 +94,14 @@ describe('chat-conversation', () => {
     ]);
   });
 
-  it('garde la saisie bloquée pendant tout le parcours guidé', async () => {
+  it('n’affiche aucune saisie pendant le parcours guidé', async () => {
     const page = await openTree();
-    expect(input(page).disabled).toBe(true);
+    expect(composer(page)).toBeNull();
 
     options(page)[0].click();
     await page.waitForChanges();
-    // Descendu d'un niveau : toujours bloqué.
-    expect(input(page).disabled).toBe(true);
+    // Descendu d'un niveau : toujours aucune saisie.
+    expect(composer(page)).toBeNull();
   });
 
   it('renvoie le choix en bulle utilisateur et descend d’un niveau', async () => {
@@ -130,11 +135,11 @@ describe('chat-conversation', () => {
     // La réponse est celle du serveur, sans appel au modèle.
     const last = turns(page)[turns(page).length - 1];
     expect(last.textContent).toContain('régime obligatoire');
-    // Le vote reste fermé à la saisie.
-    expect(input(page).disabled).toBe(true);
+    // Le vote ne propose pas d'écrire.
+    expect(composer(page)).toBeNull();
   });
 
-  it('ouvre la saisie après un « Non », et pas avant', async () => {
+  it('n’affiche la saisie qu’après un « Non »', async () => {
     const page = await openTree();
     options(page)[0].click();
     await page.waitForChanges();
@@ -144,7 +149,7 @@ describe('chat-conversation', () => {
     await page.waitForChanges();
     await page.waitForChanges();
 
-    expect(input(page).disabled).toBe(true);
+    expect(composer(page)).toBeNull();
 
     mockFetch({ body: {} }); // le vote
     const [, non] = Array.from(
@@ -153,7 +158,7 @@ describe('chat-conversation', () => {
     non.click();
     await page.waitForChanges();
 
-    expect(input(page).disabled).toBe(false);
+    expect(canType(page)).toBe(true);
   });
 
   it('après un « Oui », remercie et repropose les sujets', async () => {
@@ -173,7 +178,7 @@ describe('chat-conversation', () => {
     oui.click();
     await page.waitForChanges();
 
-    expect(input(page).disabled).toBe(true);
+    expect(composer(page)).toBeNull();
     // Retour au premier niveau.
     expect(options(page)[0].textContent).toContain('Santé et prévoyance');
   });
@@ -190,7 +195,7 @@ describe('chat-conversation', () => {
     await page.waitForChanges();
     await page.waitForChanges();
 
-    expect(input(page).disabled).toBe(false);
+    expect(canType(page)).toBe(true);
     const last = turns(page)[turns(page).length - 1];
     expect(last.textContent).toContain('Reformulez votre question');
     expect(last.textContent).not.toContain('enregistrée');
@@ -211,7 +216,7 @@ describe('chat-conversation', () => {
     await page.waitForChanges();
 
     expect(((global as any).fetch as jest.Mock).mock.calls.length).toBe(callsBefore);
-    expect(input(page).disabled).toBe(false);
+    expect(canType(page)).toBe(true);
     const last = turns(page)[turns(page).length - 1];
     // Formulation neutre : l'utilisateur n'a pas à savoir que le contenu manque.
     expect(last.textContent).toContain('Posez votre question sur');
@@ -234,7 +239,7 @@ describe('chat-conversation', () => {
     expect(last.textContent).toContain('Comment est-ce que je peux vous aider');
     // L'accueil tient lieu d'invitation : pas de second message générique.
     expect(last.textContent).not.toContain('Posez votre question sur');
-    expect(input(page).disabled).toBe(false);
+    expect(canType(page)).toBe(true);
   });
 
   it('ouvre la saisie quand aucun arbre n’est configuré', async () => {
@@ -245,6 +250,6 @@ describe('chat-conversation', () => {
     });
     await page.waitForChanges();
 
-    expect(input(page).disabled).toBe(false);
+    expect(canType(page)).toBe(true);
   });
 });
