@@ -22,7 +22,10 @@
 
 .transcript {
   flex: 1;
-  min-height: 240px;
+  /* 0 et non une valeur plancher : `min-height: auto` sur un enfant flex
+     l'empêche de rétrécir, donc de défiler. `flex: 1` lui fait de toute façon
+     occuper l'espace libre quand la conversation est courte. */
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   border: 1px solid #eee;

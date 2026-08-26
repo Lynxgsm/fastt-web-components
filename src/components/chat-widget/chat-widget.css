@@ -14,6 +14,11 @@
   bottom: 10vh;
   right: 24px;
   width: 350px;
+  /* Un élément `fixed` qui n'a que `bottom` se dimensionne sur son contenu et
+     grandit vers le haut, hors écran. Sans cette borne le fil ne peut pas
+     défiler : un enfant flex ne défile que si son conteneur est borné.
+     La page hôte peut ajuster --chat-max-height sans toucher à cette feuille. */
+  max-height: var(--chat-max-height, 80vh);
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15);

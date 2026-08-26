@@ -19,6 +19,9 @@
 .chat-container {
   width: 100%;
   height: 100%;
+  /* La hauteur vient normalement de la page hôte ; ce garde-fou évite la fuite
+     quand elle ne borne pas sa boîte — ce que fait le banc de dev. */
+  max-height: var(--chat-max-height, 85vh);
   background: white;
   border-radius: 12px;
   display: flex;
