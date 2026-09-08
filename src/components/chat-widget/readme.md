@@ -7,9 +7,9 @@
 
 ## Properties
 
-| Property      | Attribute      | Description | Type     | Default       |
-| ------------- | -------------- | ----------- | -------- | ------------- |
-| `apiEndpoint` | `api-endpoint` |             | `string` | `Env.API_URL` |
+| Property      | Attribute      | Description | Type     | Default                                 |
+| ------------- | -------------- | ----------- | -------- | --------------------------------------- |
+| `apiEndpoint` | `api-endpoint` |             | `string` | `Env.API_URL \|\| DEFAULT_API_ENDPOINT` |
 
 
 ## Dependencies

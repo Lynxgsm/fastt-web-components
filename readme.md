@@ -130,14 +130,36 @@ npm install
 ### Scripts disponibles
 
 ```bash
-# Développement avec hot reload
+# Développement avec hot reload (sert src/index.html sur le port 3333)
 npm run start
 
-# Build de production
+# Build, en utilisant API_URL de votre .env
 npm run build
+
+# Build destiné au CDN : épingle API_URL sur la production
+npm run build:prod
 
 # Tests
 npm run test
+```
+
+### ⚠️ `API_URL` et ce qui part sur le CDN
+
+`stencil.config.ts` embarque `API_URL` **au moment du build** (`env: { API_URL }`) : la
+valeur est figée dans le bundle, elle n'est pas lue à l'exécution. Comme `.env` est
+gitignoré, `npm run build` produit un artefact qui dépend de la machine — et le `dist/`
+publié a déjà contenu `http://127.0.0.1:8000` pour cette raison.
+
+**Tout `dist/` destiné à `main` doit donc être produit par `npm run build:prod`**, qui
+épingle l'URL de production, `main` étant la branche servie par jsDelivr. À défaut de
+valeur, les composants se replient sur `DEFAULT_API_ENDPOINT`
+(`src/utils/api-service.ts`).
+
+Avant de pousser un `dist/` sur `main` :
+
+```bash
+grep -rl '127\.0\.0\.1' dist/                        # doit ne rien renvoyer
+grep -c 'BUILD.isDev' dist/fastt-web-components/fastt-web-components.esm.js   # doit valoir 0
 ```
 
 ## 📄 Licence

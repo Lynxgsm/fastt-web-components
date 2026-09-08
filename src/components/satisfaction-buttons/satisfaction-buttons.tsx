@@ -1,5 +1,5 @@
 import { Component, Env, Host, Prop, State, h } from '@stencil/core';
-import { handleMessageFeedback } from '../../utils/api-service';
+import { handleMessageFeedback, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
 import { satisfactionStateService } from '../../utils/satisfaction-state';
 
 @Component({
@@ -8,7 +8,7 @@ import { satisfactionStateService } from '../../utils/satisfaction-state';
   shadow: true,
 })
 export class SatisfactionButtons {
-  @Prop() apiEndpoint: string = (Env.API_URL = 'https://fastt.celaneo.com');
+  @Prop() apiEndpoint: string = Env.API_URL || DEFAULT_API_ENDPOINT;
   @Prop() messageId: string = '';
   @State() selectedButton: 'up' | 'down' | null = null;
 

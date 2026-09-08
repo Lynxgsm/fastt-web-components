@@ -10,7 +10,7 @@ export { TitleStyle } from "./components/chat-modal/types";
 export namespace Components {
     interface ChatModal {
         /**
-          * @default Env.API_URL
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint": string;
         /**
@@ -30,13 +30,13 @@ export namespace Components {
     }
     interface ChatWidget {
         /**
-          * @default Env.API_URL
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint": string;
     }
     interface SatisfactionButtons {
         /**
-          * @default (Env.API_URL = 'https://fastt.celaneo.com')
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint": string;
         /**
@@ -80,7 +80,7 @@ declare global {
 declare namespace LocalJSX {
     interface ChatModal {
         /**
-          * @default Env.API_URL
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint"?: string;
         /**
@@ -100,13 +100,13 @@ declare namespace LocalJSX {
     }
     interface ChatWidget {
         /**
-          * @default Env.API_URL
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint"?: string;
     }
     interface SatisfactionButtons {
         /**
-          * @default (Env.API_URL = 'https://fastt.celaneo.com')
+          * @default Env.API_URL || DEFAULT_API_ENDPOINT
          */
         "apiEndpoint"?: string;
         /**

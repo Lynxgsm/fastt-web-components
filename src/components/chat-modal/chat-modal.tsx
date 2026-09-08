@@ -1,7 +1,7 @@
 import { Component, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
 import { generateConversationId, generateMessageId } from '../../utils/utils';
-import { callAIStream } from '../../utils/api-service';
+import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
 import { marked } from 'marked';
 
 @Component({
@@ -15,7 +15,7 @@ export class ChatModal {
   @State() messages: { role: string; content: string; isComplete?: boolean; messageId?: string }[] = [];
   @State() isLoading: boolean = false;
   @Prop() iconSize: number = 16;
-  @Prop() apiEndpoint: string = Env.API_URL;
+  @Prop() apiEndpoint: string = Env.API_URL || DEFAULT_API_ENDPOINT;
   @State() conversationId: string = '';
 
   componentWillLoad() {

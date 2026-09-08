@@ -1,5 +1,5 @@
 import { Component, Env, h, Prop, State } from '@stencil/core';
-import { callAIStream } from '../../utils/api-service';
+import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
 import { generateConversationId } from '../../utils/utils';
 import { marked } from 'marked';
 
@@ -12,7 +12,7 @@ export class ChatWidget {
   @State() messages: { role: string; content: string; isComplete?: boolean; messageId?: string }[] = [];
   @State() isLoading: boolean = false;
   @State() isChatContainerVisible: boolean = true;
-  @Prop() apiEndpoint: string = Env.API_URL;
+  @Prop() apiEndpoint: string = Env.API_URL || DEFAULT_API_ENDPOINT;
   @State() conversationId: string = '';
 
   private inputEl?: HTMLInputElement;
