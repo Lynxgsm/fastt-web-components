@@ -1,4 +1,4 @@
-import { Component, Env, h, Prop, State } from '@stencil/core';
+import { Component, Env, Fragment, h, Prop, State } from '@stencil/core';
 import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
 import { generateConversationId } from '../../utils/utils';
 import { marked } from 'marked';
@@ -150,16 +150,16 @@ export class ChatWidget {
               }}
             >
               {message.role === 'ai' ? (
-                <>
+                <Fragment>
                   {this.isLoading && message.content === '' ? (
                     <chat-skeleton />
                   ) : (
-                    <>
+                    <Fragment>
                       <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>
                       {message.isComplete && <satisfaction-buttons api-endpoint={this.apiEndpoint} message-id={message.messageId} />}
-                    </>
+                    </Fragment>
                   )}
-                </>
+                </Fragment>
               ) : (
                 <span>{message.content}</span>
               )}

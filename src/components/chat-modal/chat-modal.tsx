@@ -1,4 +1,4 @@
-import { Component, Host, h, State, Prop, Env } from '@stencil/core';
+import { Component, Fragment, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
 import { generateConversationId, generateMessageId } from '../../utils/utils';
 import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
@@ -134,10 +134,10 @@ export class ChatModal {
                   }}
                 >
                   {message.role === 'ai' ? (
-                    <>
+                    <Fragment>
                       {this.isLoading && message.content === '' ? <chat-skeleton /> : <div class="markdown-content" innerHTML={this.renderMarkdown(message.content)}></div>}
                       {message.isComplete && <satisfaction-buttons message-id={message.messageId} api-endpoint={this.apiEndpoint} />}
-                    </>
+                    </Fragment>
                   ) : (
                     <p>{message.content}</p>
                   )}
