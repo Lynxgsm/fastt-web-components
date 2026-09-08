@@ -1,12 +1,12 @@
 import { Env, h } from "@stencil/core";
-import { callAIStream } from "../../utils/api-service";
+import { callAIStream, DEFAULT_API_ENDPOINT } from "../../utils/api-service";
 import { generateConversationId } from "../../utils/utils";
 import { marked } from "marked";
 export class ChatWidget {
     messages = [];
     isLoading = false;
     isChatContainerVisible = true;
-    apiEndpoint = Env.API_URL;
+    apiEndpoint = Env.API_URL || DEFAULT_API_ENDPOINT;
     conversationId = '';
     inputEl;
     componentWillLoad() {
@@ -108,15 +108,15 @@ export class ChatWidget {
     }
     render() {
         return [
-            h("div", { key: '316ba9c2887a4470e2ae20daf1fa9b2c6eb82f5b', class: {
+            h("div", { key: '373a1137698596e0a2ef186987b9b693777d4da7', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, h("div", { key: 'fb2c6a5a8b1dae0f1d494de6a49094f51267ea99', class: "chat-header" }, h("h3", { key: '0e6c0c699276b32352c107baa0306a17b3b1870d', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("button", { key: '37019440d97e2a8cfec5c1b4eea3821b1a1bcfa9', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), h("div", { key: '9d7d0ed0c7c5367dbb31ec7eea91d2dd200364f9', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+                } }, h("div", { key: 'c03bb54b07ecf3ce6c8aac97381fcc17ef66d99c', class: "chat-header" }, h("h3", { key: 'd1354fe49bfe437a686cc9199a76772bcc7e76b0', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("button", { key: 'df072a6ae5a395ec1904388a5dfd8618fe2fe06b', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), h("div", { key: '582760f3ed469779752b32dfd3504787b842f9b7', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
-                } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h(h.Fragment, null, h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (h("span", null, message.content)))))), h("form", { key: 'f1d441afd5f3e21169cc004071181a81356a2cca', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'adad055129ee55ea30bafd401e8299d732312077', type: "text", placeholder: "Tapez un message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: '155a3aa537020e026dfcff09ebc0f7915ba989f4', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            h("button", { key: '6b1a85ca4bc0a76610bc623bf2d73b46b4a8d1d1', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: 'a2cc9025c7c091e8058c9acf21c0c4aa3504498f', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: 'e5d99bf1b450a1cd9a7cd8cd38f119f44aeef272', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
+                } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h(h.Fragment, null, h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (h("span", null, message.content)))))), h("form", { key: 'a1200110a143956a0e48bf3c4b71fd67ab16e11d', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'ead702f82e381f53872bc11c4f1ca82478ef7d9f', type: "text", placeholder: "Tapez un message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: '72091ac85a630b87196a368d6ca442314043b999', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            h("button", { key: '0a8eb7dcc7b4249eea9f5b6dd1b6fd60a307a7be', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: '3a5eaf61b5ca8a5ee7556151f6e25e80822881b4', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: '57643beb0b5a95120759392406bfb84815c709d0', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
         ];
     }
     static get is() { return "chat-widget"; }
@@ -151,7 +151,7 @@ export class ChatWidget {
                 "getter": false,
                 "setter": false,
                 "reflect": false,
-                "defaultValue": "Env.API_URL"
+                "defaultValue": "Env.API_URL || DEFAULT_API_ENDPOINT"
             }
         };
     }

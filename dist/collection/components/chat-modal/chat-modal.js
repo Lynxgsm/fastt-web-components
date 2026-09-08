@@ -1,6 +1,6 @@
 import { Host, h, Env } from "@stencil/core";
 import { generateConversationId, generateMessageId } from "../../utils/utils";
-import { callAIStream } from "../../utils/api-service";
+import { callAIStream, DEFAULT_API_ENDPOINT } from "../../utils/api-service";
 import { marked } from "marked";
 export class ChatModal {
     modalTitle = 'Que puis-je faire pour vous ?';
@@ -8,7 +8,7 @@ export class ChatModal {
     messages = [];
     isLoading = false;
     iconSize = 16;
-    apiEndpoint = Env.API_URL;
+    apiEndpoint = Env.API_URL || DEFAULT_API_ENDPOINT;
     conversationId = '';
     componentWillLoad() {
         this.conversationId = generateConversationId();
@@ -89,11 +89,11 @@ export class ChatModal {
         }
     }
     render() {
-        return (h(Host, { key: '7396e30f104ca6fc0a7cce1d4af9080058df3d2c' }, h("div", { key: '87b1645fc35f50c0033281b4ea8a12fe0946d685', class: "chat-container" }, h("div", { key: '1da15d0aca3b337260400b0acbc56b28a34af76b', class: "modal-header" }, h("span", { key: 'ac580439a4b570c088fb004ee7b16762f8607898', class: "modal-title" }, this.modalTitle)), h("div", { key: '1c9163fd2d71c08cd9dba9bf7969618e92a314ef', class: "chat-content" }, h("div", { key: '0bfe2fdcbb92314fa75047792372c4a7629584f0', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+        return (h(Host, { key: 'b8a05f54e46f616ad58cc8e0cfd2062df6a3805d' }, h("div", { key: 'bb4a263f87b51699b0cdbdf21d7642871017af86', class: "chat-container" }, h("div", { key: 'f7348c3d6d519ee77974ba5d8ac823b93c2e58f4', class: "modal-header" }, h("span", { key: '8d8585e736c7ba0c215d3545580b6301e067c559', class: "modal-title" }, this.modalTitle)), h("div", { key: '74067941bc8eaef7c5acf224f15cba10d682c1c0', class: "chat-content" }, h("div", { key: '146e2a0645375b1ccd0d76a18935db9df3b91770', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? h("chat-skeleton", null) : h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (h("p", null, message.content)))))), h("form", { key: '1b62c117e805ad1f7289b3f0ade37f334efe59b5', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '27e5ec69c1bf04c84879b438ff300f328164d103', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), h("button", { key: '3f43a5c95013f07122752be3a6ab62478396e6cc', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (h(h.Fragment, null, this.isLoading && message.content === '' ? h("chat-skeleton", null) : h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (h("p", null, message.content)))))), h("form", { key: 'fbb4c3edf9e64b1f95a0f31505dcc67ed9fdcac1', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '3ecae79b396781ea8f7958d79cd117f7764ef1cd', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), h("button", { key: '30b75c67eea14645d9a0cdea31318cc41a51e013', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
     }
     static get is() { return "chat-modal"; }
     static get encapsulation() { return "shadow"; }
@@ -196,7 +196,7 @@ export class ChatModal {
                 "getter": false,
                 "setter": false,
                 "reflect": false,
-                "defaultValue": "Env.API_URL"
+                "defaultValue": "Env.API_URL || DEFAULT_API_ENDPOINT"
             }
         };
     }

@@ -2,7 +2,7 @@
 
 const NAMESPACE = 'fastt-web-components';
 const BUILD = /* fastt-web-components */ { hydratedSelectorName: "hydrated", lazyLoad: true, updatable: true, watchCallback: false };
-const Env = /* fastt-web-components */ {"API_URL":"http://127.0.0.1:8000"};
+const Env = /* fastt-web-components */ {"API_URL":"https://fastt.celaneo.com"};
 
 const globalScripts = () => {};
 const globalStyles = "@import url('https://fonts.googleapis.com/css2?family=Signika:wght@300..700&family=Yantramanav:wght@100;300;400;500;700;900&display=swap'); :root{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834}";
@@ -1459,6 +1459,6 @@ exports.h = h;
 exports.promiseResolve = promiseResolve;
 exports.registerInstance = registerInstance;
 exports.setNonce = setNonce;
-//# sourceMappingURL=index-BoNdwW5P.js.map
+//# sourceMappingURL=index-S8aV0YLw.js.map
 
-//# sourceMappingURL=index-BoNdwW5P.js.map
+//# sourceMappingURL=index-S8aV0YLw.js.map

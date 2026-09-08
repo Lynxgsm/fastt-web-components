@@ -1,3 +1,7 @@
+// Repli si le build n'a pas reçu API_URL : `Env.API_URL` est figée au moment du
+// build (stencil.config.ts), pas lue à l'exécution. Sans ce repli, un build sans
+// .env livrerait un widget qui n'appelle rien.
+export const DEFAULT_API_ENDPOINT = 'https://fastt.celaneo.com';
 export async function callAIStream(message, apiEndpoint, conversationId, onChunk, onComplete, onError) {
     try {
         const response = await fetch(`${apiEndpoint}/conversation/stream`, {
