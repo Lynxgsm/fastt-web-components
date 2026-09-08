@@ -155,6 +155,21 @@ publié a déjà contenu `http://127.0.0.1:8000` pour cette raison.
 valeur, les composants se replient sur `DEFAULT_API_ENDPOINT`
 (`src/utils/api-service.ts`).
 
+### ⚠️ `npm start` et `npm test` salissent `dist/`
+
+`stencil.config.ts` déclare les cibles `dist` et `dist-custom-elements` sans
+condition : **toute** construction y écrit, y compris `npm start` (build de
+développement) et `npm test` (qui construit pour les tests e2e). Or `dist/` est
+suivi par git et c'est l'artefact publié.
+
+C'est ainsi que le commit `58812d6` de la branche `feat/decision-tree` a livré un
+bundle de développement et supprimé la moitié des fichiers de `dist/`. Après une
+session de développement ou de tests, si vous ne voulez pas republier :
+
+```bash
+git checkout -- dist && git clean -fd dist
+```
+
 Avant de pousser un `dist/` sur `main` :
 
 ```bash
