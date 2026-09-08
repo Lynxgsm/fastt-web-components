@@ -1,5 +1,3 @@
-'use strict';
-
 const NAMESPACE = 'fastt-web-components';
 const BUILD = /* fastt-web-components */ { hydratedSelectorName: "hydrated", lazyLoad: true, updatable: true, watchCallback: false };
 const Env = /* fastt-web-components */ {"API_URL":"https://fastt.celaneo.com"};
@@ -1448,17 +1446,13 @@ var bootstrapLazy = (lazyBundles, options = {}) => {
   endBootstrap();
 };
 
+// src/runtime/fragment.ts
+var Fragment = (_, children) => children;
+
 // src/runtime/nonce.ts
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
-exports.Env = Env;
-exports.Host = Host;
-exports.bootstrapLazy = bootstrapLazy;
-exports.globalScripts = globalScripts;
-exports.h = h;
-exports.promiseResolve = promiseResolve;
-exports.registerInstance = registerInstance;
-exports.setNonce = setNonce;
-//# sourceMappingURL=index-S8aV0YLw.js.map
+export { Env as E, Fragment as F, Host as H, bootstrapLazy as b, globalScripts as g, h, promiseResolve as p, registerInstance as r, setNonce as s };
+//# sourceMappingURL=index-Bvzo5Ow6.js.map
 
-//# sourceMappingURL=index-S8aV0YLw.js.map
+//# sourceMappingURL=index-Bvzo5Ow6.js.map

@@ -1248,6 +1248,9 @@ var proxyCustomElement = (Cstr, compactMeta) => {
   return proxyComponent(Cstr, cmpMeta);
 };
 
+// src/runtime/fragment.ts
+var Fragment = (_, children) => children;
+
 // src/runtime/nonce.ts
 var setNonce = (nonce) => plt.$nonce$ = nonce;
 
@@ -1262,7 +1265,7 @@ function render(vnode, container) {
   renderVdom(ref, vnode);
 }
 
-export { Env as E, H, Host as a, getAssetPath, h, proxyCustomElement as p, render, setAssetPath, setNonce, setPlatformOptions };
+export { Env as E, Fragment as F, H, Host as a, getAssetPath, h, proxyCustomElement as p, render, setAssetPath, setNonce, setPlatformOptions };
 //# sourceMappingURL=index.js.map
 
 //# sourceMappingURL=index.js.map
