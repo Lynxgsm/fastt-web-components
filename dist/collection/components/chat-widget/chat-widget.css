@@ -34,12 +34,34 @@
   font-size: 1.1rem;
   font-weight: 600;
 }
+/* Le titre reste à gauche, les actions groupées à droite : sans ce conteneur, le
+   `space-between` de .chat-header écarterait aussi les boutons entre eux. */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 .close-button {
   background: none;
   border: none;
   color: white;
   font-size: 1.5rem;
   cursor: pointer;
+}
+.new-conversation-button {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  opacity: 0.85;
+}
+.new-conversation-button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
 }
 .message-container {
   flex: 1;

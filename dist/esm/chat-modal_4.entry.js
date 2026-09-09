@@ -131,6 +131,240 @@ async function handleMessageFeedback(isSatisfied, apiEndpoint, messageId, onComp
     catch (error) {
     }
 }
+/** Levée quand l'API répond que la conversation n'existe pas (404). */
+class ConversationGoneError extends Error {
+    constructor(conversationId) {
+        super(`Conversation ${conversationId} inconnue de l'API`);
+        this.name = 'ConversationGoneError';
+    }
+}
+/**
+ * Relit les messages déjà enregistrés d'une conversation.
+ *
+ * Cette route existait pour le back-office ; elle sert ici à restaurer l'affichage
+ * après un rechargement de page. Elle renvoie aussi l'état des pouces, ce qui permet
+ * de retrouver un avis déjà donné.
+ */
+async function fetchConversationMessages(apiEndpoint, conversationId) {
+    const response = await fetch(`${apiEndpoint}/conversation/${encodeURIComponent(conversationId)}/messages`, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+    });
+    if (response.status === 404) {
+        throw new ConversationGoneError(conversationId);
+    }
+    if (!response.ok) {
+        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    const payload = await response.json();
+    return Array.isArray(payload?.messages) ? payload.messages : [];
+}
+
+class SatisfactionStateService {
+    state = new Map();
+    listeners = new Map();
+    setState(messageId, state) {
+        this.state.set(messageId, state);
+        this.notifyListeners(messageId, state);
+    }
+    getState(messageId) {
+        return this.state.get(messageId) || null;
+    }
+    subscribe(messageId, callback) {
+        if (!this.listeners.has(messageId)) {
+            this.listeners.set(messageId, new Set());
+        }
+        this.listeners.get(messageId).add(callback);
+        // Return unsubscribe function
+        return () => {
+            const listeners = this.listeners.get(messageId);
+            if (listeners) {
+                listeners.delete(callback);
+                if (listeners.size === 0) {
+                    this.listeners.delete(messageId);
+                }
+            }
+        };
+    }
+    notifyListeners(messageId, state) {
+        const listeners = this.listeners.get(messageId);
+        if (listeners) {
+            listeners.forEach(callback => callback(state));
+        }
+    }
+}
+const satisfactionStateService = new SatisfactionStateService();
+
+/**
+ * Conservation de l'identifiant de conversation d'un chargement de page au suivant.
+ *
+ * Seul l'identifiant est stocké, pas le transcript : les messages sont déjà en base,
+ * et `GET /conversation/{id}/messages` les relit. Une seule source de vérité, et
+ * l'état des pouces revient avec.
+ *
+ * `localStorage` et non `sessionStorage` : la conversation doit survivre à la
+ * fermeture de l'onglet et du navigateur, pas seulement au rafraîchissement. En
+ * contrepartie il faut une péremption, sans quoi une conversation vieille de
+ * plusieurs mois ressusciterait hors contexte.
+ */
+const STORAGE_KEY = 'fastt.chat.session';
+/** Péremption comptée depuis la dernière activité, pas depuis la création. */
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+/**
+ * Le simple accès à `localStorage` lève dans certains contextes — navigation privée
+ * stricte, stockage refusé par l'utilisateur, iframe cloisonnée. Le chat doit alors
+ * continuer de fonctionner sans persistance, jamais planter : chaque accès est isolé,
+ * et un échec vaut « pas de session stockée ».
+ */
+function readRaw() {
+    try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (!raw)
+            return null;
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.id !== 'string' || !parsed.id || typeof parsed.updatedAt !== 'number') {
+            return null;
+        }
+        return { id: parsed.id, updatedAt: parsed.updatedAt };
+    }
+    catch {
+        return null;
+    }
+}
+function writeRaw(session) {
+    try {
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    }
+    catch {
+        // Sans persistance, la conversation ne survivra pas au rechargement — mais la
+        // session en cours reste parfaitement utilisable.
+    }
+}
+/** L'identifiant conservé, ou `null` s'il n'y en a pas ou s'il est périmé. */
+function loadConversationId() {
+    const session = readRaw();
+    if (!session)
+        return null;
+    // Une horloge remise en arrière donnerait un âge négatif : `Math.abs` évite de
+    // garder indéfiniment une session que l'on ne saurait plus dater.
+    if (Math.abs(Date.now() - session.updatedAt) > SESSION_TTL_MS) {
+        clearSession();
+        return null;
+    }
+    return session.id;
+}
+/**
+ * Retient la session, et repousse sa péremption. À appeler **à l'envoi d'un
+ * message**, et seulement là.
+ *
+ * Rien n'est enregistré au montage du composant : l'API ne crée la ligne
+ * `conversations` qu'avec le premier message, donc un identifiant tout juste
+ * généré n'existe pas encore côté serveur et le relire répondrait 404. Attendre
+ * le premier envoi, c'est garantir qu'un identifiant stocké est toujours
+ * relisable.
+ *
+ * Renvoie l'identifiant réellement retenu : si une session est déjà ouverte pour
+ * cette page, on la **rejoint** plutôt que de l'écraser. C'est ce qui rend le
+ * partage cohérent quand deux composants de chat cohabitent — sans quoi le
+ * second effacerait la conversation vivante du premier.
+ */
+function rememberSession(id) {
+    const existing = loadConversationId();
+    const effective = existing ?? id;
+    writeRaw({ id: effective, updatedAt: Date.now() });
+    return effective;
+}
+function clearSession() {
+    try {
+        window.localStorage.removeItem(STORAGE_KEY);
+    }
+    catch {
+        // Rien à faire : il n'y avait de toute façon rien de persisté.
+    }
+}
+
+/**
+ * Reprise d'une conversation d'un chargement de page au suivant.
+ *
+ * `chat-widget` et `chat-modal` ont la même logique de session : elle vit ici, pour
+ * qu'ils ne puissent pas diverger.
+ */
+/**
+ * L'identifiant à utiliser pour cette page. Volontairement synchrone : appelé depuis
+ * `componentWillLoad`, il ne doit pas retarder le premier rendu.
+ *
+ * **Rien n'est enregistré ici.** C'est `rememberSession`, à l'envoi du premier
+ * message, qui persiste — voir la raison dans `session-store.ts`. Conséquence
+ * utile : `restored` ne peut plus être vrai pour une conversation vide, donc la
+ * relecture ne porte que sur des conversations qui existent réellement en base.
+ */
+function resolveConversationId() {
+    const stored = loadConversationId();
+    if (stored) {
+        return { id: stored, restored: true };
+    }
+    return { id: generateConversationId(), restored: false };
+}
+/**
+ * Repart de zéro : nouvelle conversation, et l'ancienne n'est plus rattachable.
+ *
+ * Le nouvel identifiant n'est pas enregistré non plus — le prochain envoi s'en
+ * chargera, exactement comme lors d'une première visite.
+ */
+function startNewConversation() {
+    clearSession();
+    return generateConversationId();
+}
+function toChatMessage(stored) {
+    const isAssistant = stored.actor === 'assistant';
+    return {
+        role: isAssistant ? 'ai' : 'user',
+        content: stored.message,
+        isComplete: true,
+        // L'identifiant de la base, celui qu'attend la route de feedback. Les messages
+        // restaurés sont donc notables, exactement comme ceux du direct.
+        messageId: String(stored.id),
+    };
+}
+/**
+ * Rejoue l'avis déjà donné sur les réponses restaurées.
+ *
+ * `satisfaction-buttons` lit ce service dans son `componentDidLoad` : l'amorçage doit
+ * précéder le rendu des messages, sinon les pouces s'affichent éteints alors qu'un
+ * avis existe en base.
+ */
+function seedSatisfaction(messages) {
+    messages
+        .filter(m => m.actor === 'assistant' && m.is_satisfied !== null && m.is_satisfied !== undefined)
+        .forEach(m => satisfactionStateService.setState(String(m.id), m.is_satisfied ? 'up' : 'down'));
+}
+/**
+ * Relit le transcript d'une conversation reprise.
+ *
+ * On distingue les deux échecs, parce qu'ils n'appellent pas la même réaction : une
+ * conversation absente n'a rien à relire et son entrée stockée ne vaut plus rien, alors
+ * qu'une API momentanément injoignable ne justifie pas de jeter la session — ce serait
+ * perdre pour de bon un transcript qui existe encore.
+ *
+ * `gone` ne veut **pas** dire « fabriquer un identifiant neuf » : l'appelant garde le
+ * sien. En fabriquer un ici réécrivait le stockage et effaçait la conversation vivante
+ * d'un autre composant de la page.
+ */
+async function restoreMessages(apiEndpoint, conversationId) {
+    try {
+        const stored = await fetchConversationMessages(apiEndpoint, conversationId);
+        seedSatisfaction(stored);
+        return { status: 'restored', messages: stored.map(toChatMessage) };
+    }
+    catch (error) {
+        if (error instanceof ConversationGoneError) {
+            clearSession();
+            return { status: 'gone' };
+        }
+        console.warn('Restauration de la conversation impossible :', error);
+        return { status: 'unavailable' };
+    }
+}
 
 /**
  * marked v4.3.0 - a markdown parser
@@ -3009,7 +3243,7 @@ marked.Slugger = Slugger;
 marked.Hooks = Hooks;
 marked.parse = marked;
 
-const chatModalCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;--main-color:#ff8834}p{all:unset}button{font-family:'Signika', serif, Arial, sans-serif}input{font-family:'Yantramanav', serif, Arial, sans-serif}.modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0, 0, 0, 0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity 0.3s ease, visibility 0.3s ease}.modal-overlay.visible{opacity:1;visibility:visible}.chat-container{width:100%;height:100%;background:white;border-radius:12px;display:flex;flex-direction:column;border:1px solid #eee;position:relative;transform:scale(0.8);transition:transform 0.3s ease}.modal-overlay.visible .chat-container{transform:scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #eee;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s ease}.close-button:hover{background-color:rgba(255, 255, 255, 0.2)}.chat-content{flex:1;display:flex;flex-direction:column;padding:30px;min-height:0}.message-container{flex:1;overflow-y:auto;margin-bottom:20px;padding:20px;border:1px solid #eee;border-radius:8px;min-height:300px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.input-container{display:flex;gap:12px;align-items:center;background:white;padding:16px;border:1px solid #ddd;border-radius:8px}input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;transition:border-color 0.2s ease}input:focus{border-color:var(--main-color)}button{padding:12px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border:none;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600;transition:transform 0.2s ease, box-shadow 0.2s ease}button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(236, 102, 7, 0.3)}button:disabled{background:#cccccc;cursor:not-allowed;transform:none;box-shadow:none}.typing-indicator{display:none;margin:12px 0;max-width:80%;margin-right:auto}.typing-indicator.active{display:block}.typing-indicator .skeleton-container{margin:0;background:transparent;border:none;padding:12px 16px}.typing-indicator .skeleton-wrapper{gap:8px}.typing-indicator .skeleton-avatar{width:24px;height:24px;margin-bottom:0}.typing-indicator .skeleton-line{height:12px}.typing-indicator .skeleton-typing{margin-top:4px}.message-container::-webkit-scrollbar{width:8px}.message-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}.message-container::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}.message-container::-webkit-scrollbar-thumb:hover{background:#a1a1a1}@media (max-width: 768px){.chat-container{width:100%;height:100%;border-radius:8px}.modal-header{padding:15px 20px}.modal-title{font-size:1.25rem}.chat-content{padding:20px}.message{max-width:90%;padding:10px 12px}.input-container{padding:12px;gap:8px}input{padding:10px 12px}button{padding:10px 16px}}.ai-feedback-buttons{display:flex;gap:8px;margin-top:8px;align-items:center}.ai-feedback-buttons button{all:unset;cursor:pointer}.ai-feedback-buttons button:hover{all:unset;cursor:pointer}.markdown-content{line-height:1.6;color:inherit}.markdown-content h1,.markdown-content h2,.markdown-content h3,.markdown-content h4,.markdown-content h5,.markdown-content h6{margin:16px 0 8px 0;font-weight:600;line-height:1.3}.markdown-content h1{font-size:1.5em}.markdown-content h2{font-size:1.4em}.markdown-content h3{font-size:1.3em}.markdown-content h4{font-size:1.2em}.markdown-content h5{font-size:1.1em}.markdown-content h6{font-size:1em}.markdown-content p{margin:8px 0;line-height:1.6}.markdown-content ul,.markdown-content ol{margin:8px 0;padding-left:24px}.markdown-content li{margin:4px 0;line-height:1.5}.markdown-content blockquote{margin:12px 0;padding:8px 16px;border-left:4px solid var(--main-color);background-color:rgba(255, 136, 52, 0.1);border-radius:4px;font-style:italic}.markdown-content code{background-color:rgba(0, 0, 0, 0.1);padding:2px 6px;border-radius:3px;font-family:'Monaco', 'Menlo', 'Ubuntu Mono', monospace;font-size:0.9em}.markdown-content pre{background-color:rgba(0, 0, 0, 0.1);padding:12px;border-radius:6px;overflow-x:auto;margin:12px 0}.markdown-content pre code{background:none;padding:0;border-radius:0}.markdown-content strong{font-weight:600}.markdown-content em{font-style:italic}.markdown-content a{color:var(--main-color);text-decoration:none}.markdown-content a:hover{text-decoration:underline}.markdown-content table{border-collapse:collapse;width:100%;margin:12px 0}.markdown-content th,.markdown-content td{border:1px solid #ddd;padding:8px 12px;text-align:left}.markdown-content th{background-color:rgba(255, 136, 52, 0.1);font-weight:600}.markdown-content hr{border:none;border-top:1px solid #ddd;margin:16px 0}.thumb-up,.thumb-down{width:16px;height:16px}@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}.skeleton-container{position:relative}.skeleton-line{height:14px;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px;margin-bottom:8px;position:relative;overflow:hidden}.skeleton-line:last-child{margin-bottom:0}.skeleton-line.line-1{width:95%}.skeleton-line.line-2{width:88%}.skeleton-line.line-3{width:72%}.skeleton-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;margin-bottom:12px;display:inline-block}.skeleton-wrapper{display:flex;align-items:flex-start;gap:12px}.skeleton-content{flex:1}.skeleton-typing{display:flex;align-items:center;gap:4px;margin-top:8px}.skeleton-dot{width:6px;height:6px;border-radius:50%;background-color:#6c757d;animation:typing 1.4s infinite ease-in-out}.skeleton-dot:nth-child(1){animation-delay:-0.32s}.skeleton-dot:nth-child(2){animation-delay:-0.16s}.skeleton-dot:nth-child(3){animation-delay:0s}@keyframes typing{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}.skeleton-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);animation:glow 2s infinite;border-radius:inherit}@keyframes glow{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}";
+const chatModalCss = ":host{font-family:'Yantramanav', serif, Arial, sans-serif;line-height:1.5;font-weight:400;--main-color:#ff8834}p{all:unset}button{font-family:'Signika', serif, Arial, sans-serif}input{font-family:'Yantramanav', serif, Arial, sans-serif}.modal-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0, 0, 0, 0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:opacity 0.3s ease, visibility 0.3s ease}.modal-overlay.visible{opacity:1;visibility:visible}.chat-container{width:100%;height:100%;background:white;border-radius:12px;display:flex;flex-direction:column;border:1px solid #eee;position:relative;transform:scale(0.8);transition:transform 0.3s ease}.modal-overlay.visible .chat-container{transform:scale(1)}.modal-header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;border-bottom:1px solid #eee;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border-radius:12px 12px 0 0}.modal-title{font-family:'Signika', Arial, sans-serif;font-size:1.25rem;font-weight:600;margin:0}.new-conversation-button{display:flex;align-items:center;background:none;border:none;color:white;cursor:pointer;padding:8px;border-radius:50%;opacity:0.85}.new-conversation-button:hover{opacity:1;background:rgba(255, 255, 255, 0.15)}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;padding:8px;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;transition:background-color 0.2s ease}.close-button:hover{background-color:rgba(255, 255, 255, 0.2)}.chat-content{flex:1;display:flex;flex-direction:column;padding:30px;min-height:0}.message-container{flex:1;overflow-y:auto;margin-bottom:20px;padding:20px;border:1px solid #eee;border-radius:8px;min-height:300px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.input-container{display:flex;gap:12px;align-items:center;background:white;padding:16px;border:1px solid #ddd;border-radius:8px}input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:6px;font-size:1rem;outline:none;transition:border-color 0.2s ease}input:focus{border-color:var(--main-color)}button{padding:12px 24px;background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;border:none;border-radius:6px;cursor:pointer;font-size:1rem;font-weight:600;transition:transform 0.2s ease, box-shadow 0.2s ease}button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(236, 102, 7, 0.3)}button:disabled{background:#cccccc;cursor:not-allowed;transform:none;box-shadow:none}.typing-indicator{display:none;margin:12px 0;max-width:80%;margin-right:auto}.typing-indicator.active{display:block}.typing-indicator .skeleton-container{margin:0;background:transparent;border:none;padding:12px 16px}.typing-indicator .skeleton-wrapper{gap:8px}.typing-indicator .skeleton-avatar{width:24px;height:24px;margin-bottom:0}.typing-indicator .skeleton-line{height:12px}.typing-indicator .skeleton-typing{margin-top:4px}.message-container::-webkit-scrollbar{width:8px}.message-container::-webkit-scrollbar-track{background:#f1f1f1;border-radius:4px}.message-container::-webkit-scrollbar-thumb{background:#c1c1c1;border-radius:4px}.message-container::-webkit-scrollbar-thumb:hover{background:#a1a1a1}@media (max-width: 768px){.chat-container{width:100%;height:100%;border-radius:8px}.modal-header{padding:15px 20px}.modal-title{font-size:1.25rem}.chat-content{padding:20px}.message{max-width:90%;padding:10px 12px}.input-container{padding:12px;gap:8px}input{padding:10px 12px}button{padding:10px 16px}}.ai-feedback-buttons{display:flex;gap:8px;margin-top:8px;align-items:center}.ai-feedback-buttons button{all:unset;cursor:pointer}.ai-feedback-buttons button:hover{all:unset;cursor:pointer}.markdown-content{line-height:1.6;color:inherit}.markdown-content h1,.markdown-content h2,.markdown-content h3,.markdown-content h4,.markdown-content h5,.markdown-content h6{margin:16px 0 8px 0;font-weight:600;line-height:1.3}.markdown-content h1{font-size:1.5em}.markdown-content h2{font-size:1.4em}.markdown-content h3{font-size:1.3em}.markdown-content h4{font-size:1.2em}.markdown-content h5{font-size:1.1em}.markdown-content h6{font-size:1em}.markdown-content p{margin:8px 0;line-height:1.6}.markdown-content ul,.markdown-content ol{margin:8px 0;padding-left:24px}.markdown-content li{margin:4px 0;line-height:1.5}.markdown-content blockquote{margin:12px 0;padding:8px 16px;border-left:4px solid var(--main-color);background-color:rgba(255, 136, 52, 0.1);border-radius:4px;font-style:italic}.markdown-content code{background-color:rgba(0, 0, 0, 0.1);padding:2px 6px;border-radius:3px;font-family:'Monaco', 'Menlo', 'Ubuntu Mono', monospace;font-size:0.9em}.markdown-content pre{background-color:rgba(0, 0, 0, 0.1);padding:12px;border-radius:6px;overflow-x:auto;margin:12px 0}.markdown-content pre code{background:none;padding:0;border-radius:0}.markdown-content strong{font-weight:600}.markdown-content em{font-style:italic}.markdown-content a{color:var(--main-color);text-decoration:none}.markdown-content a:hover{text-decoration:underline}.markdown-content table{border-collapse:collapse;width:100%;margin:12px 0}.markdown-content th,.markdown-content td{border:1px solid #ddd;padding:8px 12px;text-align:left}.markdown-content th{background-color:rgba(255, 136, 52, 0.1);font-weight:600}.markdown-content hr{border:none;border-top:1px solid #ddd;margin:16px 0}.thumb-up,.thumb-down{width:16px;height:16px}@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:calc(200px + 100%) 0}}.skeleton-container{position:relative}.skeleton-line{height:14px;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;border-radius:4px;margin-bottom:8px;position:relative;overflow:hidden}.skeleton-line:last-child{margin-bottom:0}.skeleton-line.line-1{width:95%}.skeleton-line.line-2{width:88%}.skeleton-line.line-3{width:72%}.skeleton-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(90deg, #e9ecef 25%, #f8f9fa 50%, #e9ecef 75%);background-size:200px 100%;animation:shimmer 1.5s infinite linear;margin-bottom:12px;display:inline-block}.skeleton-wrapper{display:flex;align-items:flex-start;gap:12px}.skeleton-content{flex:1}.skeleton-typing{display:flex;align-items:center;gap:4px;margin-top:8px}.skeleton-dot{width:6px;height:6px;border-radius:50%;background-color:#6c757d;animation:typing 1.4s infinite ease-in-out}.skeleton-dot:nth-child(1){animation-delay:-0.32s}.skeleton-dot:nth-child(2){animation-delay:-0.16s}.skeleton-dot:nth-child(3){animation-delay:0s}@keyframes typing{0%,80%,100%{opacity:0.3;transform:scale(0.8)}40%{opacity:1;transform:scale(1)}}.skeleton-glow{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);animation:glow 2s infinite;border-radius:inherit}@keyframes glow{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}";
 
 const ChatModal = class {
     constructor(hostRef) {
@@ -3022,9 +3256,13 @@ const ChatModal = class {
     iconSize = 16;
     apiEndpoint = Env.API_URL;
     conversationId = '';
+    isRestoring = false;
     componentWillLoad() {
-        this.conversationId = generateConversationId();
-        console.log('Generated conversation ID:', this.conversationId);
+        // Reprendre la conversation précédente si elle n'est pas périmée, sinon en ouvrir
+        // une neuve. Résolution synchrone : rien ici ne doit retarder le premier rendu.
+        const { id, restored } = resolveConversationId();
+        this.conversationId = id;
+        this.isRestoring = restored;
         this.loadFonts();
         // Configure marked for safe rendering
         marked.setOptions({
@@ -3032,6 +3270,35 @@ const ChatModal = class {
             gfm: true, // GitHub Flavored Markdown
         });
     }
+    // La relecture du transcript se fait ici, et non dans `componentWillLoad` : ce
+    // dernier bloque le premier rendu s'il renvoie une promesse, et le modal resterait
+    // vide le temps de la requête.
+    async componentDidLoad() {
+        if (!this.isRestoring)
+            return;
+        const result = await restoreMessages(this.apiEndpoint, this.conversationId);
+        if (result.status === 'restored') {
+            // L'utilisateur peut avoir envoyé un message avant la fin de la relecture :
+            // l'historique se place devant, plutôt que d'écraser son échange en cours.
+            this.messages = [...result.messages, ...this.messages];
+        }
+        else if (result.status === 'gone') {
+            // L'identifiant stocké ne désigne rien en base : il n'y a rien à afficher, et
+            // rien à abandonner non plus. On garde celui de cette page — en fabriquer un
+            // neuf ici réécrivait le stockage et effaçait la conversation d'un autre
+            // composant. `restoreMessages` a déjà purgé l'entrée devenue inutile.
+            this.messages = [];
+        }
+        this.isRestoring = false;
+    }
+    // Vide l'affichage et détache la session stockée. Les messages restent en base pour
+    // le back-office : c'est la vue de l'utilisateur qui repart de zéro, pas l'historique.
+    handleNewConversation = () => {
+        this.conversationId = startNewConversation();
+        this.messages = [];
+        this.isLoading = false;
+        this.isRestoring = false;
+    };
     loadFonts() {
         const existingLink = document.querySelector('link[href*="fonts.googleapis.com/css2?family=Signika"]');
         if (!existingLink) {
@@ -3069,6 +3336,10 @@ const ChatModal = class {
         const form = e.target;
         const input = form.querySelector('input[name="message"]');
         const message = input.value;
+        // C'est l'envoi qui persiste la session, pas le montage : avant le premier
+        // message, la conversation n'existe pas encore en base. `rememberSession` renvoie
+        // l'identifiant retenu — celui d'une session déjà ouverte, le cas échéant.
+        this.conversationId = rememberSession(this.conversationId);
         this.messages.push({ role: 'user', content: message, messageId: generateMessageId() });
         this.isLoading = true;
         form.reset();
@@ -3101,11 +3372,11 @@ const ChatModal = class {
         }
     }
     render() {
-        return (h(Host, { key: '671f9379a65e0eea32672fe46b3c45b97e372b1e' }, h("div", { key: '2aaca44f395cb02706ae1c8c166a17a25ad0e13c', class: "chat-container" }, h("div", { key: '350310731667f77c5057b594829a6490b0a462e0', class: "modal-header" }, h("span", { key: 'a96fd9d9c76d3b4b9efbb10487b4fd6fb81c1072', class: "modal-title" }, this.modalTitle)), h("div", { key: 'd019f099e40bf83a9575d944a96a03eacc2dc3c9', class: "chat-content" }, h("div", { key: '4359de6b90f902e180fbd063b1bd0185f9bb2e00', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+        return (h(Host, { key: '0b9b7729c86c30e28272e1137b2bfda240a13045' }, h("div", { key: 'f5fd45fdbefaccb2dba7df828af95f7db3ccf972', class: "chat-container" }, h("div", { key: '86bba694ba9924d4a005816828d59f458c2e85b8', class: "modal-header" }, h("span", { key: 'e983c1353ed363aa4023123352f02355635eb8ac', class: "modal-title" }, this.modalTitle), this.messages.length > 0 && (h("button", { key: 'a441f84cbc62f25ba376d4f1131241153064cc61', class: "new-conversation-button", onClick: this.handleNewConversation, title: "Nouvelle conversation", "aria-label": "Nouvelle conversation" }, h("svg", { key: 'ad2637f4d1879a0edef5569e8cfaf4aac6577c0a', xmlns: "http://www.w3.org/2000/svg", width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: '59fde97642906bd3bca68844830353372f8e7e88', d: "M12 5v14" }), h("path", { key: 'b1ec541fc447dd406cc7719bd9a3d55968fb706f', d: "M5 12h14" }))))), h("div", { key: 'c12dca16ebff1e114ea37c06edd7e11171c91e46', class: "chat-content" }, h("div", { key: '5a63b966b58aa25e1ce5a9b8b60f39820d1d1931', class: "message-container" }, this.isRestoring && h("chat-skeleton", { key: '2a051ab918369635fc2f211f44fc4c05d499d117' }), this.messages.map((message, index) => (h("div", { key: index, class: {
                 'message': true,
                 'user-message': message.role === 'user',
                 'ai-message': message.role === 'ai',
-            } }, message.role === 'ai' ? (h(Fragment, null, this.isLoading && message.content === '' ? h("chat-skeleton", null) : h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (h("p", null, message.content)))))), h("form", { key: '735a1a7f96ea618676626086490ac9e1287b99d0', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '73c1cc81f84ee39ff450d32e0e3849abfcf2ae1e', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), h("button", { key: '552c6ed2314c2d76ce9fe8ba9877fbd0105b3097', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
+            } }, message.role === 'ai' ? (h(Fragment, null, this.isLoading && message.content === '' ? h("chat-skeleton", null) : h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "message-id": message.messageId, "api-endpoint": this.apiEndpoint }))) : (h("p", null, message.content)))))), h("form", { key: '731d83b7c421a4ff061da65932a7d47c5e995480', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'b22e8309c64a61fdad05b7203f11f6d29816ae40', name: "message", type: "text", placeholder: "Tapez votre message ici...", disabled: this.isLoading }), h("button", { key: '00a1c5afa31c731d680c1556354692108738a5c3', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { xmlns: "http://www.w3.org/2000/svg", width: this.iconSize, height: this.iconSize, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-send-horizontal-icon lucide-send-horizontal" }, h("path", { d: "M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z" }), h("path", { d: "M6 12h16" })))))))));
     }
 };
 ChatModal.style = chatModalCss;
@@ -3117,12 +3388,12 @@ const ChatSkeleton = class {
         registerInstance(this, hostRef);
     }
     render() {
-        return (h(Host, { key: 'ebdf437a8d516e0e27516e505a65c5702ae33f4b' }, h("div", { key: 'c1b212392b3ab4f8266da7a9f584fec3092424ea', class: 'skeleton-container' }, h("div", { key: 'df3f4db997842505bc17545233eef3e8e036f952', class: 'skeleton-typing' }, h("div", { key: '6b4f9796edd6243865e65c31e399eaf38054372c', class: 'skeleton-dot' }), h("div", { key: '2f0be9e8816c203079b8b2697574ac22d49f07a7', class: 'skeleton-dot' })))));
+        return (h(Host, { key: '44f75e135dd6132ea901e52ef247365da6a42527' }, h("div", { key: '9c959b494f3b0ad736dbd8ec86df47124670e27d', class: 'skeleton-container' }, h("div", { key: '010f1c559187331c5e49d0b6b8f619fe82fcd61f', class: 'skeleton-typing' }, h("div", { key: 'f82b749c6fd9f63ac35b6a9d12f03ea18cc5e4d2', class: 'skeleton-dot' }), h("div", { key: 'e7e19ec93d3e9f24d6ebc693d7a9b5d2f42a7305', class: 'skeleton-dot' })))));
     }
 };
 ChatSkeleton.style = chatSkeletonCss;
 
-const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:10vh;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.message-container{flex:1;padding:16px;overflow-y:scroll;background:#f7fafc;min-height:250px;max-height:250px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--main-color);color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}.markdown-content{line-height:1.5}.markdown-content a{color:var(--main-color);text-decoration:underline}.markdown-content p{margin:0 0 8px 0}.markdown-content p:last-child{margin-bottom:0}";
+const chatWidgetCss = ":host{max-width:600px;margin:0 auto;padding:20px;--main-color:#ff8834;font-family:'Yantramanav', serif, Arial, sans-serif}.chat-widget-container{position:fixed;bottom:10vh;right:24px;width:350px;background:white;border-radius:12px;box-shadow:0 2px 16px rgba(0, 0, 0, 0.15);z-index:999;display:flex;flex-direction:column;overflow:hidden}.chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #eee;background:var(--main-color);color:white;font-family:'Signika', Arial, sans-serif}.chat-title{margin:0;font-size:1.1rem;font-weight:600}.header-actions{display:flex;align-items:center;gap:4px}.close-button{background:none;border:none;color:white;font-size:1.5rem;cursor:pointer}.new-conversation-button{display:flex;align-items:center;background:none;border:none;color:white;cursor:pointer;padding:4px;border-radius:50%;opacity:0.85}.new-conversation-button:hover{opacity:1;background:rgba(255, 255, 255, 0.15)}.message-container{flex:1;padding:16px;overflow-y:scroll;background:#f7fafc;min-height:250px;max-height:250px}.message{margin:12px 0;padding:12px 16px;border-radius:12px;max-width:80%;word-wrap:break-word;line-height:1.4}.user-message{background:linear-gradient(135deg, var(--main-color), #ff8834);color:white;margin-left:auto;width:fit-content;border-radius:20px 20px 0px 20px}.ai-message{background:hsla(240, 6%, 90%, 0.5);color:#333;margin-right:auto;width:fit-content;border-radius:20px 20px 20px 0px}.typing-indicator{min-height:24px;padding:0 16px;color:#888;font-size:0.9rem}.input-container{display:flex;border-top:1px solid #eee;padding:8px;background:#fff}.input{flex:1;border:1px solid #ccc;border-radius:6px;padding:8px;font-size:1rem;margin-right:8px;font-family:'Yantramanav', serif, Arial, sans-serif}.send-button{background:var(--main-color);color:white;border:none;border-radius:6px;padding:0 16px;font-size:1rem;cursor:pointer}.send-icon{width:20px;height:20px;vertical-align:middle}.chat-toggler{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:var(--main-color);color:white;border:none;box-shadow:0 2px 8px rgba(0, 0, 0, 0.15);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;z-index:999}.hide{display:none;opacity:0;z-index:-1;transform:translateY(50%)}.markdown-content{line-height:1.5}.markdown-content a{color:var(--main-color);text-decoration:underline}.markdown-content p{margin:0 0 8px 0}.markdown-content p:last-child{margin-bottom:0}";
 
 const ChatWidget = class {
     constructor(hostRef) {
@@ -3133,17 +3404,41 @@ const ChatWidget = class {
     isChatContainerVisible = true;
     apiEndpoint = Env.API_URL;
     conversationId = '';
+    isRestoring = false;
     inputEl;
     componentWillLoad() {
-        // Initialize conversation ID when component first loads
-        this.conversationId = generateConversationId();
-        console.log('Generated conversation ID:', this.conversationId);
+        // Reprendre la conversation précédente si elle n'est pas périmée, sinon en ouvrir
+        // une neuve. Résolution synchrone : rien ici ne doit retarder le premier rendu.
+        const { id, restored } = resolveConversationId();
+        this.conversationId = id;
+        this.isRestoring = restored;
         this.loadFonts();
         // Configure marked for safe rendering
         marked.setOptions({
             breaks: true, // Convert line breaks to <br>
             gfm: true, // GitHub Flavored Markdown
         });
+    }
+    // La relecture du transcript se fait ici, et non dans `componentWillLoad` : ce
+    // dernier bloque le premier rendu s'il renvoie une promesse, et le widget resterait
+    // invisible le temps de la requête.
+    async componentDidLoad() {
+        if (!this.isRestoring)
+            return;
+        const result = await restoreMessages(this.apiEndpoint, this.conversationId);
+        if (result.status === 'restored') {
+            // L'utilisateur peut avoir envoyé un message avant la fin de la relecture :
+            // l'historique se place devant, plutôt que d'écraser son échange en cours.
+            this.messages = [...result.messages, ...this.messages];
+        }
+        else if (result.status === 'gone') {
+            // L'identifiant stocké ne désigne rien en base : il n'y a rien à afficher, et
+            // rien à abandonner non plus. On garde celui de cette page — en fabriquer un
+            // neuf ici réécrivait le stockage et effaçait la conversation d'un autre
+            // composant. `restoreMessages` a déjà purgé l'entrée devenue inutile.
+            this.messages = [];
+        }
+        this.isRestoring = false;
     }
     loadFonts() {
         // Check if fonts are already loaded to avoid duplicates
@@ -3161,6 +3456,10 @@ const ChatWidget = class {
         if (!input || !input.value.trim())
             return;
         const message = input.value;
+        // C'est l'envoi qui persiste la session, pas le montage : avant le premier
+        // message, la conversation n'existe pas encore en base. `rememberSession` renvoie
+        // l'identifiant retenu — celui d'une session déjà ouverte, le cas échéant.
+        this.conversationId = rememberSession(this.conversationId);
         const userMessage = { role: 'user', content: message, isComplete: true };
         this.messages = [...this.messages, userMessage];
         input.value = '';
@@ -3203,6 +3502,14 @@ const ChatWidget = class {
     toggleChatContainer = () => {
         this.isChatContainerVisible = !this.isChatContainerVisible;
     };
+    // Vide l'affichage et détache la session stockée. Les messages restent en base pour
+    // le back-office : c'est la vue de l'utilisateur qui repart de zéro, pas l'historique.
+    handleNewConversation = () => {
+        this.conversationId = startNewConversation();
+        this.messages = [];
+        this.isLoading = false;
+        this.isRestoring = false;
+    };
     setInputRef = (el) => {
         this.inputEl = el;
     };
@@ -3233,54 +3540,19 @@ const ChatWidget = class {
     }
     render() {
         return [
-            h("div", { key: 'a8b052f2d16a9154154e9f8952719280de737013', class: {
+            h("div", { key: 'd6d0f9b0486abddc3e4ecccf56bd1235f68e601e', class: {
                     'chat-widget-container': true,
                     'hide': !this.isChatContainerVisible,
-                } }, h("div", { key: '7a34a44731f0c913f2291347724cf2bfe088dd6b', class: "chat-header" }, h("h3", { key: 'b2d20f66f0751ab1be119633166e03485810b0de', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("button", { key: 'e78b114dac2039f298297e9850980f34d1e8db84', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7")), h("div", { key: 'bd87dd6c59af87bec2bcd076b7bbcc4869d1cb6d', class: "message-container" }, this.messages.map((message, index) => (h("div", { key: index, class: {
+                } }, h("div", { key: 'de6342bdb80299c4d978604894c5505720714f8e', class: "chat-header" }, h("h3", { key: 'af0b23844be0a2879e030f838858bda015c4c2c3', class: "chat-title" }, "Que puis-je faire pour vous ?"), h("div", { key: 'e8f5abd5bde44bd131c22e31a5222356cc57c6d2', class: "header-actions" }, this.messages.length > 0 && (h("button", { key: 'e4ef793d7717ab469f1b418b1a56383e9b663857', class: "new-conversation-button", onClick: this.handleNewConversation, title: "Nouvelle conversation", "aria-label": "Nouvelle conversation" }, h("svg", { key: '15eb98011ff3a835885d223086f8c9fc9981ca43', xmlns: "http://www.w3.org/2000/svg", width: "18", height: "18", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: '95a9b1cfeda9b38db23a178f49781fd514faea04', d: "M12 5v14" }), h("path", { key: '6bffeba14b4eade843c46231d1f7c18627c3219b', d: "M5 12h14" })))), h("button", { key: '3cdb8c5c86e6dda0edab60056e263a8e1cc25c0a', class: "close-button", onClick: this.toggleChatContainer }, "\u00D7"))), h("div", { key: '08f3781338a7d78b999a9677070d9f83204ab95d', class: "message-container" }, this.isRestoring && h("chat-skeleton", { key: '749b261350ffa37ebb6d48a9c06ac0866360dd5c' }), this.messages.map((message, index) => (h("div", { key: index, class: {
                     'message': true,
                     'user-message': message.role === 'user',
                     'ai-message': message.role === 'ai',
-                } }, message.role === 'ai' ? (h(Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h(Fragment, null, h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (h("span", null, message.content)))))), h("form", { key: '01263ad15ab1fd632cc419f25f624df64a998dde', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: 'b11be0aa038d98acb4143d95e5388e18ddb3b413', type: "text", placeholder: "Tapez un message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: 'e2f4f89d51ef5c306f67d77ca8b1392ecbd159a4', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
-            h("button", { key: '77c31361dfa041c8b69ff106f75f570606c662a2', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: '3c45f418057b4e40a7c224f869c75f9890182e7e', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: '3367856c3824e27bee0700b203d5ed6983896239', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
+                } }, message.role === 'ai' ? (h(Fragment, null, this.isLoading && message.content === '' ? (h("chat-skeleton", null)) : (h(Fragment, null, h("div", { class: "markdown-content", innerHTML: this.renderMarkdown(message.content) }), message.isComplete && h("satisfaction-buttons", { "api-endpoint": this.apiEndpoint, "message-id": message.messageId }))))) : (h("span", null, message.content)))))), h("form", { key: '2428ea35f0d6459d015161bf1fc7f8b0c43beb93', class: "input-container", onSubmit: this.handleSubmit }, h("input", { key: '7b2e33cb82202eaf6294b6ac5204a0ca02ff9b2f', type: "text", placeholder: "Tapez un message...", name: "message", required: true, class: "input", ref: this.setInputRef }), h("button", { key: 'bae9ad29177ef14b7bbb9774bdcfd7564d6b267d', type: "submit", disabled: this.isLoading, class: "send-button" }, this.isLoading ? ('Envoi...') : (h("svg", { class: "send-icon", xmlns: "http://www.w3.org/2000/svg", width: "20", height: "20", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("line", { x1: "22", y1: "2", x2: "11", y2: "13" }), h("polygon", { points: "22 2 15 22 11 13 2 9 22 2" })))))),
+            h("button", { key: 'f054ccc5c2f8a961ba95ac962e8230e2578163c6', class: "chat-toggler", onClick: this.toggleChatContainer }, h("svg", { key: '8d3fa55b194657d0b10923c0b6211e3d6ece9571', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "white", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round" }, h("path", { key: '78e6ba78a3512eae97d32141fc2c3ae84eb34120', d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z" }))),
         ];
     }
 };
 ChatWidget.style = chatWidgetCss;
-
-class SatisfactionStateService {
-    state = new Map();
-    listeners = new Map();
-    setState(messageId, state) {
-        this.state.set(messageId, state);
-        this.notifyListeners(messageId, state);
-    }
-    getState(messageId) {
-        return this.state.get(messageId) || null;
-    }
-    subscribe(messageId, callback) {
-        if (!this.listeners.has(messageId)) {
-            this.listeners.set(messageId, new Set());
-        }
-        this.listeners.get(messageId).add(callback);
-        // Return unsubscribe function
-        return () => {
-            const listeners = this.listeners.get(messageId);
-            if (listeners) {
-                listeners.delete(callback);
-                if (listeners.size === 0) {
-                    this.listeners.delete(messageId);
-                }
-            }
-        };
-    }
-    notifyListeners(messageId, state) {
-        const listeners = this.listeners.get(messageId);
-        if (listeners) {
-            listeners.forEach(callback => callback(state));
-        }
-    }
-}
-const satisfactionStateService = new SatisfactionStateService();
 
 const satisfactionButtonsCss = ":host{display:block !important;visibility:visible !important;height:auto !important;box-sizing:border-box;--btn-size:18px}button{all:unset}.satisfaction-container{gap:8px;margin-top:12px;padding:12px;width:100%;box-sizing:border-box}.satisfaction-buttons{display:flex !important;gap:8px;align-items:flex-start;justify-content:flex-start;width:100%}.satisfaction-btn{background:transparent !important;width:var(--btn-size) !important;height:var(--btn-size) !important;display:flex !important;align-items:center !important;justify-content:center !important;cursor:pointer !important;transition:all 0.2s ease !important;padding:0 !important;box-sizing:border-box !important;color:#6b7280 !important}.satisfaction-btn.active{color:#059669 !important}.satisfaction-btn.active.thumbs-down{color:#dc2626 !important}.satisfaction-btn svg{width:24px !important;height:24px !important}:host *{box-sizing:border-box !important}.satisfaction-btn,.satisfaction-btn:hover,.satisfaction-btn:active,.satisfaction-btn:focus{opacity:1 !important;visibility:visible !important}";
 
@@ -3319,7 +3591,7 @@ const SatisfactionButtons = class {
         });
     };
     render() {
-        return (h(Host, { key: '8ab94d482d02d447ad420170a8ea5e370c742b6d' }, h("div", { key: 'cb84d0e8e4a4ad503e3d1a2594b8d5d7bad83fe1', class: "satisfaction-container" }, h("div", { key: '601cb432223837c4fdb42a675f1b2c31a6457319', class: "satisfaction-buttons" }, h("button", { key: '000e5443a1d544851261682ac1711d0d7eaaa914', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, h("svg", { key: '50b22481b7cf901caf12860b41834f9362f9560c', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, h("path", { key: '1797fb6e93a0d5603e9b3020b93cbe6983ebb10b', d: "M7 10v12" }), h("path", { key: '993aa0a58d8113a02067b2b8c3bf571fea02eadd', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), h("button", { key: '3162e50bda221674c67716776721a5dc314765bb', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, h("svg", { key: 'b4966a5e80b1a36f498a561abb099e679c9892b5', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, h("path", { key: '0ef105f91663cc6f1791cc12d8a338b2a98fa098', d: "M17 14V2" }), h("path", { key: 'a97c165419a3c031635cc04261c31f63cc13ea70', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
+        return (h(Host, { key: '8eac31d683410a9f8cf5d8649d0f949057ee4d90' }, h("div", { key: '964dd9419a8d5d2c411508a549d0f5e15c9e1ef5', class: "satisfaction-container" }, h("div", { key: 'be6e0cb40c5332a46d200bdb8a0dab4ba2e90123', class: "satisfaction-buttons" }, h("button", { key: '0344318fea1bb6dfedd5991106f115cb63ef32c4', title: "R\u00E9ponse utile", class: `satisfaction-btn thumbs-up ${this.selectedButton === 'up' ? 'active' : ''}`, onClick: this.handleThumbsUp, "aria-label": "R\u00E9ponse utile" }, h("svg", { key: '8bf13c17df7deada8b44ad3f1a89ea7e630975d4', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'up' ? '#ff8834' : 'none', stroke: this.selectedButton === 'up' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-up-icon lucide-thumbs-up" }, h("path", { key: '01b60a3de497dddc243b0c00d02ef3fac57b5821', d: "M7 10v12" }), h("path", { key: 'b488811ed25377fbe70052a0147343eb1874b798', d: "M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" }))), h("button", { key: '57b27ae83b12f1c9cda13c800f54d3dd32ee10e8', title: "R\u00E9ponse inutile", class: `satisfaction-btn thumbs-down ${this.selectedButton === 'down' ? 'active' : ''}`, onClick: this.handleThumbsDown, "aria-label": "R\u00E9ponse pas utile" }, h("svg", { key: '4f056f85fe36821d0a309d5526a65e33e5ebdec8', xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: this.selectedButton === 'down' ? '#ff8834' : 'none', stroke: this.selectedButton === 'down' ? '#ff8834' : 'currentColor', "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", class: "lucide lucide-thumbs-down-icon lucide-thumbs-down" }, h("path", { key: 'e460dda1cd1bf63c529940ef32ebfd343ecb6b1d', d: "M17 14V2" }), h("path", { key: '97f24103d9cfb1928d9cda39d7f18db96ca6a9b6', d: "M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" })))))));
     }
 };
 SatisfactionButtons.style = satisfactionButtonsCss;

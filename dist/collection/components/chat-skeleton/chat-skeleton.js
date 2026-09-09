@@ -1,7 +1,7 @@
 import { Host, h } from "@stencil/core";
 export class ChatSkeleton {
     render() {
-        return (h(Host, { key: 'ebdf437a8d516e0e27516e505a65c5702ae33f4b' }, h("div", { key: 'c1b212392b3ab4f8266da7a9f584fec3092424ea', class: 'skeleton-container' }, h("div", { key: 'df3f4db997842505bc17545233eef3e8e036f952', class: 'skeleton-typing' }, h("div", { key: '6b4f9796edd6243865e65c31e399eaf38054372c', class: 'skeleton-dot' }), h("div", { key: '2f0be9e8816c203079b8b2697574ac22d49f07a7', class: 'skeleton-dot' })))));
+        return (h(Host, { key: '44f75e135dd6132ea901e52ef247365da6a42527' }, h("div", { key: '9c959b494f3b0ad736dbd8ec86df47124670e27d', class: 'skeleton-container' }, h("div", { key: '010f1c559187331c5e49d0b6b8f619fe82fcd61f', class: 'skeleton-typing' }, h("div", { key: 'f82b749c6fd9f63ac35b6a9d12f03ea18cc5e4d2', class: 'skeleton-dot' }), h("div", { key: 'e7e19ec93d3e9f24d6ebc693d7a9b5d2f42a7305', class: 'skeleton-dot' })))));
     }
     static get is() { return "chat-skeleton"; }
     static get encapsulation() { return "shadow"; }
