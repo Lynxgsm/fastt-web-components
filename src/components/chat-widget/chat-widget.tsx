@@ -1,6 +1,7 @@
 import { Component, Env, Fragment, h, Prop, State } from '@stencil/core';
 import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
-import { generateConversationId } from '../../utils/utils';
+import { resolveConversationId, restoreMessages, startNewConversation } from '../../utils/chat-session';
+import { rememberSession } from '../../utils/session-store';
 import { marked } from 'marked';
 
 @Component({
@@ -14,13 +15,16 @@ export class ChatWidget {
   @State() isChatContainerVisible: boolean = true;
   @Prop() apiEndpoint: string = Env.API_URL || DEFAULT_API_ENDPOINT;
   @State() conversationId: string = '';
+  @State() isRestoring: boolean = false;
 
   private inputEl?: HTMLInputElement;
 
   componentWillLoad() {
-    // Initialize conversation ID when component first loads
-    this.conversationId = generateConversationId();
-    console.log('Generated conversation ID:', this.conversationId);
+    // Reprendre la conversation précédente si elle n'est pas périmée, sinon en ouvrir
+    // une neuve. Résolution synchrone : rien ici ne doit retarder le premier rendu.
+    const { id, restored } = resolveConversationId();
+    this.conversationId = id;
+    this.isRestoring = restored;
     this.loadFonts();
 
     // Configure marked for safe rendering
@@ -28,6 +32,27 @@ export class ChatWidget {
       breaks: true, // Convert line breaks to <br>
       gfm: true, // GitHub Flavored Markdown
     });
+  }
+
+  // La relecture du transcript se fait ici, et non dans `componentWillLoad` : ce
+  // dernier bloque le premier rendu s'il renvoie une promesse, et le widget resterait
+  // invisible le temps de la requête.
+  async componentDidLoad() {
+    if (!this.isRestoring) return;
+
+    const result = await restoreMessages(this.apiEndpoint, this.conversationId);
+    if (result.status === 'restored') {
+      // L'utilisateur peut avoir envoyé un message avant la fin de la relecture :
+      // l'historique se place devant, plutôt que d'écraser son échange en cours.
+      this.messages = [...result.messages, ...this.messages];
+    } else if (result.status === 'gone') {
+      // L'identifiant stocké ne désigne rien en base : il n'y a rien à afficher, et
+      // rien à abandonner non plus. On garde celui de cette page — en fabriquer un
+      // neuf ici réécrivait le stockage et effaçait la conversation d'un autre
+      // composant. `restoreMessages` a déjà purgé l'entrée devenue inutile.
+      this.messages = [];
+    }
+    this.isRestoring = false;
   }
 
   private loadFonts() {
@@ -46,6 +71,10 @@ export class ChatWidget {
     const input = this.inputEl;
     if (!input || !input.value.trim()) return;
     const message = input.value;
+    // C'est l'envoi qui persiste la session, pas le montage : avant le premier
+    // message, la conversation n'existe pas encore en base. `rememberSession` renvoie
+    // l'identifiant retenu — celui d'une session déjà ouverte, le cas échéant.
+    this.conversationId = rememberSession(this.conversationId);
     const userMessage = { role: 'user', content: message, isComplete: true };
     this.messages = [...this.messages, userMessage];
     input.value = '';
@@ -96,6 +125,15 @@ export class ChatWidget {
     this.isChatContainerVisible = !this.isChatContainerVisible;
   };
 
+  // Vide l'affichage et détache la session stockée. Les messages restent en base pour
+  // le back-office : c'est la vue de l'utilisateur qui repart de zéro, pas l'historique.
+  private handleNewConversation = () => {
+    this.conversationId = startNewConversation();
+    this.messages = [];
+    this.isLoading = false;
+    this.isRestoring = false;
+  };
+
   private setInputRef = (el: HTMLInputElement) => {
     this.inputEl = el;
   };
@@ -135,11 +173,22 @@ export class ChatWidget {
       >
         <div class="chat-header">
           <h3 class="chat-title">Que puis-je faire pour vous ?</h3>
-          <button class="close-button" onClick={this.toggleChatContainer}>
-            ×
-          </button>
+          <div class="header-actions">
+            {this.messages.length > 0 && (
+              <button class="new-conversation-button" onClick={this.handleNewConversation} title="Nouvelle conversation" aria-label="Nouvelle conversation">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+            )}
+            <button class="close-button" onClick={this.toggleChatContainer}>
+              ×
+            </button>
+          </div>
         </div>
         <div class="message-container">
+          {this.isRestoring && <chat-skeleton />}
           {this.messages.map((message, index) => (
             <div
               key={index}
