@@ -2,6 +2,10 @@ import { newSpecPage } from '@stencil/core/testing';
 import { ChatModal } from '../chat-modal';
 
 describe('chat-modal', () => {
+  beforeEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('rend le conteneur et le titre', async () => {
     const page = await newSpecPage({
       components: [ChatModal],

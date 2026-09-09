@@ -12,7 +12,10 @@ export declare class ChatModal {
     iconSize: number;
     apiEndpoint: string;
     conversationId: string;
+    isRestoring: boolean;
     componentWillLoad(): void;
+    componentDidLoad(): Promise<void>;
+    private handleNewConversation;
     private loadFonts;
     private handleChunk;
     private handleSubmit;

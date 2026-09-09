@@ -1,7 +1,9 @@
 import { Component, Fragment, Host, h, State, Prop, Env } from '@stencil/core';
 import { TitleStyle } from './types';
-import { generateConversationId, generateMessageId } from '../../utils/utils';
+import { generateMessageId } from '../../utils/utils';
 import { callAIStream, DEFAULT_API_ENDPOINT } from '../../utils/api-service';
+import { resolveConversationId, restoreMessages, startNewConversation } from '../../utils/chat-session';
+import { rememberSession } from '../../utils/session-store';
 import { marked } from 'marked';
 
 @Component({
@@ -17,10 +19,14 @@ export class ChatModal {
   @Prop() iconSize: number = 16;
   @Prop() apiEndpoint: string = Env.API_URL || DEFAULT_API_ENDPOINT;
   @State() conversationId: string = '';
+  @State() isRestoring: boolean = false;
 
   componentWillLoad() {
-    this.conversationId = generateConversationId();
-    console.log('Generated conversation ID:', this.conversationId);
+    // Reprendre la conversation précédente si elle n'est pas périmée, sinon en ouvrir
+    // une neuve. Résolution synchrone : rien ici ne doit retarder le premier rendu.
+    const { id, restored } = resolveConversationId();
+    this.conversationId = id;
+    this.isRestoring = restored;
     this.loadFonts();
 
     // Configure marked for safe rendering
@@ -29,6 +35,36 @@ export class ChatModal {
       gfm: true, // GitHub Flavored Markdown
     });
   }
+
+  // La relecture du transcript se fait ici, et non dans `componentWillLoad` : ce
+  // dernier bloque le premier rendu s'il renvoie une promesse, et le modal resterait
+  // vide le temps de la requête.
+  async componentDidLoad() {
+    if (!this.isRestoring) return;
+
+    const result = await restoreMessages(this.apiEndpoint, this.conversationId);
+    if (result.status === 'restored') {
+      // L'utilisateur peut avoir envoyé un message avant la fin de la relecture :
+      // l'historique se place devant, plutôt que d'écraser son échange en cours.
+      this.messages = [...result.messages, ...this.messages];
+    } else if (result.status === 'gone') {
+      // L'identifiant stocké ne désigne rien en base : il n'y a rien à afficher, et
+      // rien à abandonner non plus. On garde celui de cette page — en fabriquer un
+      // neuf ici réécrivait le stockage et effaçait la conversation d'un autre
+      // composant. `restoreMessages` a déjà purgé l'entrée devenue inutile.
+      this.messages = [];
+    }
+    this.isRestoring = false;
+  }
+
+  // Vide l'affichage et détache la session stockée. Les messages restent en base pour
+  // le back-office : c'est la vue de l'utilisateur qui repart de zéro, pas l'historique.
+  private handleNewConversation = () => {
+    this.conversationId = startNewConversation();
+    this.messages = [];
+    this.isLoading = false;
+    this.isRestoring = false;
+  };
 
 
   private loadFonts() {
@@ -83,6 +119,10 @@ export class ChatModal {
     const form = e.target as HTMLFormElement;
     const input = form.querySelector('input[name="message"]') as HTMLInputElement;
     const message = input.value;
+    // C'est l'envoi qui persiste la session, pas le montage : avant le premier
+    // message, la conversation n'existe pas encore en base. `rememberSession` renvoie
+    // l'identifiant retenu — celui d'une session déjà ouverte, le cas échéant.
+    this.conversationId = rememberSession(this.conversationId);
     this.messages.push({ role: 'user', content: message, messageId: generateMessageId() });
     this.isLoading = true;
     form.reset();
@@ -121,9 +161,18 @@ export class ChatModal {
         <div class="chat-container">
           <div class="modal-header">
             <span class="modal-title">{this.modalTitle}</span>
+            {this.messages.length > 0 && (
+              <button class="new-conversation-button" onClick={this.handleNewConversation} title="Nouvelle conversation" aria-label="Nouvelle conversation">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 5v14" />
+                  <path d="M5 12h14" />
+                </svg>
+              </button>
+            )}
           </div>
           <div class="chat-content">
             <div class="message-container">
+              {this.isRestoring && <chat-skeleton />}
               {this.messages.map((message, index) => (
                 <div
                   key={index}

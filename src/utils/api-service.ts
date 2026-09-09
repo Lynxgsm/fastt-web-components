@@ -147,3 +147,43 @@ export async function handleMessageFeedback(isSatisfied: number, apiEndpoint: st
     onError?.(error as Error);
   }
 }
+
+/** Un message tel que le renvoie `GET /conversation/{id}/messages`. */
+export interface StoredMessage {
+  id: number;
+  actor: string;
+  message: string;
+  is_satisfied: boolean | null;
+}
+
+/** Levée quand l'API répond que la conversation n'existe pas (404). */
+export class ConversationGoneError extends Error {
+  constructor(conversationId: string) {
+    super(`Conversation ${conversationId} inconnue de l'API`);
+    this.name = 'ConversationGoneError';
+  }
+}
+
+/**
+ * Relit les messages déjà enregistrés d'une conversation.
+ *
+ * Cette route existait pour le back-office ; elle sert ici à restaurer l'affichage
+ * après un rechargement de page. Elle renvoie aussi l'état des pouces, ce qui permet
+ * de retrouver un avis déjà donné.
+ */
+export async function fetchConversationMessages(apiEndpoint: string, conversationId: string): Promise<StoredMessage[]> {
+  const response = await fetch(`${apiEndpoint}/conversation/${encodeURIComponent(conversationId)}/messages`, {
+    method: 'GET',
+    headers: { 'Accept': 'application/json' },
+  });
+
+  if (response.status === 404) {
+    throw new ConversationGoneError(conversationId);
+  }
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+  }
+
+  const payload = await response.json();
+  return Array.isArray(payload?.messages) ? payload.messages : [];
+}

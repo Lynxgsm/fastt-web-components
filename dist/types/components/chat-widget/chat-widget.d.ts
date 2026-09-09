@@ -9,11 +9,14 @@ export declare class ChatWidget {
     isChatContainerVisible: boolean;
     apiEndpoint: string;
     conversationId: string;
+    isRestoring: boolean;
     private inputEl?;
     componentWillLoad(): void;
+    componentDidLoad(): Promise<void>;
     private loadFonts;
     private handleSubmit;
     private toggleChatContainer;
+    private handleNewConversation;
     private setInputRef;
     private renderMarkdown;
     render(): any[];

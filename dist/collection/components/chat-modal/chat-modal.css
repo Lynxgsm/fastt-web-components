@@ -73,6 +73,23 @@ input {
   margin: 0;
 }
 
+.new-conversation-button {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  opacity: 0.85;
+}
+
+.new-conversation-button:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .close-button {
   background: none;
   border: none;
